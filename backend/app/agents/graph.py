@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+from langgraph.graph import END, START, StateGraph
+
+from app.agents.nodes.code_search import code_search_node
+from app.agents.nodes.planner import planner_node
+from app.agents.nodes.repo_scanner import repo_scanner_node
+from app.agents.state import AgentRunState
+
+
+def build_agent_graph():
+    graph = StateGraph(AgentRunState)
+    graph.add_node("planner", planner_node)
+    graph.add_node("repo_scanner", repo_scanner_node)
+    graph.add_node("code_search", code_search_node)
+    graph.add_edge(START, "planner")
+    graph.add_edge("planner", "repo_scanner")
+    graph.add_edge("repo_scanner", "code_search")
+    graph.add_edge("code_search", END)
+    return graph.compile()
