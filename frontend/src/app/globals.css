@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --surface: #111111;
+  --border: #232323;
+  --muted: #a1a1aa;
+  --muted-strong: #d4d4d8;
+  --panel: #0f0f0f;
+  --success: #e4e4e7;
+  --warning: #d4d4d8;
+  --danger: #fafafa;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-panel: var(--panel);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--border);
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+a,
+button,
+input,
+textarea {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+::selection {
+  background: #262626;
+  color: #ffffff;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 999px;
+}
+
+.panel-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.panel-value {
+  color: #fafafa;
+}
+
+.chrome-divider {
+  border-top: 1px solid var(--border);
+}
+
+.markdown-report h1,
+.markdown-report h2,
+.markdown-report h3 {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.markdown-report h1 {
+  font-size: 1.5rem;
+}
+
+.markdown-report h2 {
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+
+.markdown-report p,
+.markdown-report li {
+  color: var(--muted-strong);
+}
+
+.markdown-report ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.markdown-report code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.markdown-report pre {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: #0d0d0d;
+  padding: 1rem;
+}
+
+.markdown-report blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 1rem;
+  color: var(--muted);
+}
