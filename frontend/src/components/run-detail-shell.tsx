@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { RefreshCcw } from "lucide-react";
+import { GitBranch, RefreshCcw } from "lucide-react";
 
 import {
   approveRun,
@@ -31,36 +31,6 @@ async function loadRunState(runId: number) {
   const [run, events] = await Promise.all([getRun(runId), getRunEvents(runId)]);
   saveRecentRunId(run.id);
   return { run, events };
-}
-
-const workflowStages = [
-  "planner",
-  "repo_scanner",
-  "code_search",
-  "evidence_reader",
-  "root_cause",
-  "patch_generator",
-  "approval_node",
-  "test_runner",
-  "verifier",
-  "risk_scorer",
-  "reporter",
-];
-
-function currentStage(run: RunDetail) {
-  if (run.current_node) {
-    return run.current_node;
-  }
-
-  if (run.status === "completed") {
-    return "reporter";
-  }
-
-  if (run.status === "rejected") {
-    return "approval_node";
-  }
-
-  return null;
 }
 
 export function RunDetailShell({ runId }: { runId: number }) {
@@ -140,6 +110,12 @@ export function RunDetailShell({ runId }: { runId: number }) {
             </Link>
 
             <div className="flex flex-wrap items-center gap-3">
+              <Link href={`/runs/${runId}/graph`}>
+                <Button variant="ghost">
+                  <GitBranch className="size-4" />
+                  Graph View
+                </Button>
+              </Link>
               <Button
                 disabled={isPending}
                 onClick={() => void refresh()}
@@ -186,24 +162,6 @@ export function RunDetailShell({ runId }: { runId: number }) {
                     {run.test_command}
                   </span>
                 ) : null}
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                {workflowStages.map((stage) => {
-                  const active = currentStage(run) === stage;
-                  return (
-                    <span
-                      className={
-                        active
-                          ? "rounded-sm border border-zinc-300 px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-100"
-                          : "rounded-sm border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600"
-                      }
-                      key={stage}
-                    >
-                      {stage.replaceAll("_", " ")}
-                    </span>
-                  );
-                })}
               </div>
             </>
           ) : (

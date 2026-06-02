@@ -41,6 +41,37 @@ body {
   letter-spacing: 0;
 }
 
+.react-flow {
+  background: #111111;
+}
+
+.react-flow__renderer {
+  background: #111111;
+}
+
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__edge-path {
+  stroke-linecap: square;
+}
+
+.react-flow__handle {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+}
+
+.react-flow__controls,
+.react-flow__minimap,
+.react-flow__attribution {
+  display: none;
+}
+
 a,
 button,
 input,

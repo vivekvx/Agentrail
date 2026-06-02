@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, RefreshCcw } from "lucide-react";
 
-import { getRun } from "@/lib/api";
+import { getRun, getRunEvents } from "@/lib/api";
 import { loadRecentRunIds, saveRecentRunId } from "@/lib/recent-runs";
-import type { RunDetail } from "@/lib/types";
+import type { RunDetail, RunEvent } from "@/lib/types";
+import { RunGraphPreview } from "@/components/run-graph-preview";
 import { RiskBadge } from "@/components/risk-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,13 @@ function summaryLine(run: RunDetail) {
   return `${run.status.replaceAll("_", " ")} · ${verification}`;
 }
 
+interface RecentRunItem {
+  run: RunDetail;
+  events: RunEvent[];
+}
+
 export function RecentRunsPanel() {
-  const [runs, setRuns] = useState<RunDetail[]>([]);
+  const [runs, setRuns] = useState<RecentRunItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   async function loadRuns() {
@@ -30,15 +36,17 @@ export function RecentRunsPanel() {
     const hydrated = await Promise.all(
       ids.map(async (id) => {
         try {
-          const run = await getRun(id);
+          const [run, events] = await Promise.all([getRun(id), getRunEvents(id)]);
           saveRecentRunId(run.id);
-          return run;
+          return { run, events };
         } catch {
           return null;
         }
       }),
     );
-    setRuns(hydrated.filter((run): run is RunDetail => run !== null));
+    setRuns(
+      hydrated.filter((item): item is RecentRunItem => item !== null),
+    );
     setIsLoading(false);
   }
 
@@ -81,39 +89,39 @@ export function RecentRunsPanel() {
         </div>
       ) : (
         <div className="border-t border-border">
-          {runs.map((run) => (
-            <Link
-              className="group block border-b border-border py-5"
-              href={`/runs/${run.id}`}
-              key={run.id}
-            >
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                  Run {run.id}
-                </span>
-                <StatusBadge status={run.status} />
-                <RiskBadge
-                  level={
-                    typeof run.risk_score?.level === "string"
-                      ? run.risk_score.level
-                      : null
-                  }
-                />
-              </div>
-
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="line-clamp-2 text-sm leading-6 text-zinc-100">
-                    {run.user_task}
-                  </p>
-                  <p className="mt-3 truncate font-mono text-[11px] text-zinc-600">
-                    {run.repo_path}
-                  </p>
-                  <p className="mt-2 text-xs text-zinc-500">{summaryLine(run)}</p>
+          {runs.map(({ run, events }) => (
+            <div className="border-b border-border py-5" key={run.id}>
+              <Link className="group block" href={`/runs/${run.id}`}>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                    Run {run.id}
+                  </span>
+                  <StatusBadge status={run.status} />
+                  <RiskBadge
+                    level={
+                      typeof run.risk_score?.level === "string"
+                        ? run.risk_score.level
+                        : null
+                    }
+                  />
                 </div>
-                <ArrowUpRight className="mt-1 size-4 shrink-0 text-zinc-700 transition-colors group-hover:text-zinc-300" />
-              </div>
-            </Link>
+
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="line-clamp-2 text-sm leading-6 text-zinc-100">
+                      {run.user_task}
+                    </p>
+                    <p className="mt-3 truncate font-mono text-[11px] text-zinc-600">
+                      {run.repo_path}
+                    </p>
+                    <p className="mt-2 text-xs text-zinc-500">{summaryLine(run)}</p>
+                  </div>
+                  <ArrowUpRight className="mt-1 size-4 shrink-0 text-zinc-700 transition-colors group-hover:text-zinc-300" />
+                </div>
+              </Link>
+
+              <RunGraphPreview run={run} events={events} />
+            </div>
           ))}
         </div>
       )}
