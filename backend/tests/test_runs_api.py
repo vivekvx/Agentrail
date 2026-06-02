@@ -56,6 +56,12 @@ def test_create_run_returns_initial_fields(client: TestClient, tmp_path: Path) -
     assert created["final_report"] is None
     assert created["error_message"] is None
 
+    events_response = client.get(f"/api/runs/{created['id']}/events")
+    assert events_response.status_code == 200
+    events = events_response.json()
+    assert [event["event_type"] for event in events] == ["run_created"]
+    assert events[0]["payload"]["status"] == "created"
+
 
 def test_start_run_failure_sets_failed_status_and_sanitized_error_message(
     client: TestClient,
@@ -136,6 +142,11 @@ def test_start_run_persists_pending_approval_patch_diff_and_payload(
     assert run["approval_payload"]["root_cause"]
     assert "AuthContext.tsx" in run["patch_diff"]
 
+    events_response = client.get(f"/api/runs/{run_id}/events")
+    event_types = [event["event_type"] for event in events_response.json()]
+    assert "run_started" in event_types
+    assert "pending_approval" in event_types
+
 
 def test_get_run_returns_patch_diff_and_approval_payload(
     client: TestClient,
@@ -170,6 +181,12 @@ def test_get_run_returns_patch_diff_and_approval_payload(
     run = response.json()
     assert run["approval_payload"]["question"] == "Approve this patch?"
     assert "diff --git" in run["patch_diff"]
+
+    events_response = client.get(f"/api/runs/{created['id']}/events")
+    events = events_response.json()
+    assert events[0]["event_type"] == "run_created"
+    assert events[1]["event_type"] == "run_started"
+    assert any(event["event_type"] == "pending_approval" for event in events)
 
 
 def test_approve_run_persists_final_report_test_result_verification_and_risk(
@@ -224,6 +241,15 @@ def test_approve_run_persists_final_report_test_result_verification_and_risk(
     assert persisted["verification_result"]["status"] == "verified"
     assert persisted["risk_score"]["level"] in {"medium", "high"}
 
+    events_response = client.get(f"/api/runs/{run_id}/events")
+    event_types = [event["event_type"] for event in events_response.json()]
+    assert "approved" in event_types
+    assert "tests_run" in event_types
+    assert "verified" in event_types
+    assert "risk_scored" in event_types
+    assert "report_generated" in event_types
+    assert "run_completed" in event_types
+
 
 def test_reject_run_persists_final_report_and_approval_status(
     client: TestClient,
@@ -270,6 +296,11 @@ def test_reject_run_persists_final_report_and_approval_status(
     assert persisted["approval_status"] == "rejected"
     assert persisted["final_report"] == rejected["final_report"]
 
+    events_response = client.get(f"/api/runs/{run_id}/events")
+    event_types = [event["event_type"] for event in events_response.json()]
+    assert "rejected" in event_types
+    assert "report_generated" in event_types
+
 
 def test_get_run_does_not_expose_raw_tracebacks(
     client: TestClient,
@@ -302,3 +333,7 @@ def test_get_run_does_not_expose_raw_tracebacks(
     assert run["status"] == "failed"
     assert "Traceback" not in run["error_message"]
     assert str(tmp_path.resolve()) not in run["error_message"]
+
+    events_response = client.get(f"/api/runs/{run_id}/events")
+    event_types = [event["event_type"] for event in events_response.json()]
+    assert "run_failed" in event_types

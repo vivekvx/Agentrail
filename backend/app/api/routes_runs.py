@@ -9,9 +9,10 @@ from langgraph.types import Command
 from sqlalchemy.orm import Session
 
 from app.agents.graph import build_agent_graph
-from app.db.models import AgentRun
+from app.db.models import AgentRun, RunEvent
 from app.db.session import get_db
-from app.schemas.runs import ApprovalResponse, RunCreate, RunRead, RunStartResponse
+from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead, RunStartResponse
+from app.services.run_events import list_run_events, log_run_event
 from app.tools.path_policy import validate_repo_directory
 
 
@@ -40,6 +41,18 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
     db.add(run)
     db.commit()
     db.refresh(run)
+    log_run_event(
+        db,
+        run.id,
+        "run_created",
+        "Run created",
+        payload={
+            "status": run.status,
+            "repo_path": run.repo_path,
+            "test_command": run.test_command,
+        },
+    )
+    db.commit()
     return _run_read(run)
 
 
@@ -62,6 +75,13 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
     run.risk_score = None
     run.final_report = None
     run.error_message = None
+    log_run_event(
+        db,
+        run.id,
+        "run_started",
+        "Run started",
+        payload={"status": run.status},
+    )
     db.commit()
     db.refresh(run)
 
@@ -83,6 +103,17 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
             run.current_node = "approval_node"
             run.approval_payload = json.dumps(interrupt_payload)
             run.error_message = None
+            _log_graph_state_events(db, run, result)
+            log_run_event(
+                db,
+                run.id,
+                "pending_approval",
+                "Run is waiting for approval",
+                payload={
+                    "approval_payload": interrupt_payload,
+                    "patch_diff": run.patch_diff,
+                },
+            )
             db.commit()
             db.refresh(run)
             return _run_start_response(run)
@@ -94,6 +125,14 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
         run.status = "failed"
         run.current_node = "error"
         run.error_message = _sanitize_error_message(str(exc))
+        log_run_event(
+            db,
+            run.id,
+            "run_failed",
+            "Run failed",
+            message=run.error_message,
+            payload={"status": run.status},
+        )
         db.commit()
         db.refresh(run)
         raise HTTPException(
@@ -106,6 +145,8 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
     run.final_report = final_report
     run.approval_payload = None
     run.error_message = None
+    _log_graph_state_events(db, run, result)
+    _log_completion_events(db, run)
     db.commit()
     db.refresh(run)
 
@@ -120,6 +161,12 @@ def get_approval(run_id: int, db: Session = Depends(get_db)) -> ApprovalResponse
         status=run.status,
         approval_payload=_load_approval_payload(run),
     )
+
+
+@router.get("/{run_id}/events", response_model=list[RunEventRead])
+def get_run_events(run_id: int, db: Session = Depends(get_db)) -> list[RunEventRead]:
+    _get_run_or_404(run_id, db)
+    return [_run_event_read(event) for event in list_run_events(db, run_id)]
 
 
 @router.post("/{run_id}/approve", response_model=RunStartResponse)
@@ -148,6 +195,13 @@ def _resume_run(
     run.status = "running"
     run.current_node = "test_runner" if decision == "approve" else "reporter"
     run.error_message = None
+    log_run_event(
+        db,
+        run.id,
+        "approved" if decision == "approve" else "rejected",
+        "Patch approved" if decision == "approve" else "Patch rejected",
+        payload={"decision": decision},
+    )
     db.commit()
     db.refresh(run)
 
@@ -162,6 +216,14 @@ def _resume_run(
         run.status = "failed"
         run.current_node = "error"
         run.error_message = _sanitize_error_message(str(exc))
+        log_run_event(
+            db,
+            run.id,
+            "run_failed",
+            "Run failed",
+            message=run.error_message,
+            payload={"status": run.status},
+        )
         db.commit()
         db.refresh(run)
         raise HTTPException(
@@ -173,6 +235,8 @@ def _resume_run(
     run.current_node = "reporter"
     run.final_report = final_report
     run.error_message = None
+    _log_graph_state_events(db, run, result)
+    _log_completion_events(db, run)
     db.commit()
     db.refresh(run)
 
@@ -275,6 +339,18 @@ def _run_start_response(run: AgentRun) -> RunStartResponse:
     )
 
 
+def _run_event_read(event: RunEvent) -> RunEventRead:
+    return RunEventRead(
+        id=event.id,
+        run_id=event.run_id,
+        event_type=event.event_type,
+        title=event.title,
+        message=event.message,
+        payload=_load_json_dict(event.payload_json),
+        created_at=event.created_at,
+    )
+
+
 def _dict_or_none(value: object) -> dict[str, object] | None:
     return value if isinstance(value, dict) else None
 
@@ -293,3 +369,107 @@ def _sanitize_error_message(message: str) -> str:
     if sanitized.startswith("Repository path is outside allowed roots:"):
         return "Repository path is outside allowed roots."
     return sanitized.replace("Traceback", "").strip() or "Unexpected error."
+
+
+def _log_graph_state_events(db: Session, run: AgentRun, result: dict[str, object]) -> None:
+    repo_scan = _dict_or_none(result.get("repo_scan"))
+    if repo_scan is not None:
+        log_run_event(
+            db,
+            run.id,
+            "repo_scanned",
+            "Repository scanned",
+            payload={
+                "detected_stack": repo_scan.get("detected_stack"),
+                "probable_backend_directory": repo_scan.get("probable_backend_directory"),
+                "probable_frontend_directory": repo_scan.get("probable_frontend_directory"),
+            },
+        )
+
+    search_results = result.get("search_results")
+    if isinstance(search_results, list):
+        log_run_event(
+            db,
+            run.id,
+            "code_searched",
+            "Code search completed",
+            payload={"match_count": len(search_results)},
+        )
+
+    evidence = result.get("evidence")
+    if isinstance(evidence, list):
+        log_run_event(
+            db,
+            run.id,
+            "evidence_read",
+            "Evidence gathered",
+            payload={"evidence_count": len(evidence)},
+        )
+
+    root_cause = _string_or_none(result.get("root_cause"))
+    if root_cause:
+        log_run_event(
+            db,
+            run.id,
+            "root_cause_generated",
+            "Root cause generated",
+            message=root_cause,
+        )
+
+    if run.patch_diff:
+        log_run_event(
+            db,
+            run.id,
+            "patch_generated",
+            "Patch preview generated",
+            payload={"patch_diff": run.patch_diff},
+        )
+
+    test_result = _load_json_dict(run.test_result)
+    if test_result is not None:
+        log_run_event(
+            db,
+            run.id,
+            "tests_run",
+            "Tests completed",
+            payload=test_result,
+        )
+
+    verification_result = _load_json_dict(run.verification_result)
+    if verification_result is not None:
+        log_run_event(
+            db,
+            run.id,
+            "verified",
+            "Verification result recorded",
+            payload=verification_result,
+        )
+
+    risk_score = _load_json_dict(run.risk_score)
+    if risk_score is not None:
+        log_run_event(
+            db,
+            run.id,
+            "risk_scored",
+            "Risk score recorded",
+            payload=risk_score,
+        )
+
+
+def _log_completion_events(db: Session, run: AgentRun) -> None:
+    if run.final_report:
+        log_run_event(
+            db,
+            run.id,
+            "report_generated",
+            "Final report generated",
+            payload={"status": run.status},
+        )
+    if run.status == "completed":
+        log_run_event(
+            db,
+            run.id,
+            "run_completed",
+            "Run completed",
+            payload={"status": run.status},
+        )

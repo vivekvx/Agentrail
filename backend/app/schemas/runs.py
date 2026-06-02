@@ -53,3 +53,13 @@ class ApprovalResponse(BaseModel):
     id: int
     status: str
     approval_payload: dict[str, object] | None
+
+
+class RunEventRead(BaseModel):
+    id: int
+    run_id: int
+    event_type: str
+    title: str
+    message: str | None
+    payload: dict[str, object] | None
+    created_at: datetime
