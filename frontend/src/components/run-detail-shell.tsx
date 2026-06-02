@@ -16,8 +16,12 @@ import type { RunDetail, RunEvent } from "@/lib/types";
 import { AgentTimeline } from "@/components/agent-timeline";
 import { ApprovalCard } from "@/components/approval-card";
 import { FinalReportCard } from "@/components/final-report-card";
-import { JsonCard } from "@/components/json-card";
 import { PatchPreviewCard } from "@/components/patch-preview-card";
+import {
+  RiskPanel,
+  TestResultPanel,
+  VerificationPanel,
+} from "@/components/run-analysis-panels";
 import { RunOverviewCard } from "@/components/run-overview-card";
 import { RiskBadge } from "@/components/risk-badge";
 import { StatusBadge } from "@/components/status-badge";
@@ -29,18 +33,34 @@ async function loadRunState(runId: number) {
   return { run, events };
 }
 
-function signalValue(run: RunDetail, events: RunEvent[], key: "approval" | "verification" | "events") {
-  if (key === "approval") {
-    return run.approval_status ?? "waiting";
+const workflowStages = [
+  "planner",
+  "repo_scanner",
+  "code_search",
+  "evidence_reader",
+  "root_cause",
+  "patch_generator",
+  "approval_node",
+  "test_runner",
+  "verifier",
+  "risk_scorer",
+  "reporter",
+];
+
+function currentStage(run: RunDetail) {
+  if (run.current_node) {
+    return run.current_node;
   }
 
-  if (key === "verification") {
-    return typeof run.verification_result?.status === "string"
-      ? run.verification_result.status
-      : "pending";
+  if (run.status === "completed") {
+    return "reporter";
   }
 
-  return String(events.length);
+  if (run.status === "rejected") {
+    return "approval_node";
+  }
+
+  return null;
 }
 
 export function RunDetailShell({ runId }: { runId: number }) {
@@ -109,108 +129,114 @@ export function RunDetailShell({ runId }: { runId: number }) {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1520px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="mb-4 grid gap-4 border-b border-border pb-4 lg:grid-cols-[minmax(0,1.1fr)_auto]">
-          <div className="space-y-3">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1400px] flex-col px-5 py-6 sm:px-8">
+        <header className="border-b border-border pb-8">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <Link
-              className="inline-flex items-center rounded-md border border-border bg-[#0d0d0d] px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200"
+              className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200"
               href="/"
             >
               Back to command center
             </Link>
-            <div className="flex flex-wrap items-start gap-3">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">
-                  Run detail
-                </h1>
-                <p className="mt-1 text-sm text-zinc-500">
-                  Timeline-led inspection view for evidence, approval,
-                  verification, and residual risk.
-                </p>
-              </div>
-              {run ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-md border border-border bg-[#0d0d0d] px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                    Run {run.id}
-                  </div>
-                  <StatusBadge status={run.status} />
-                  <RiskBadge
-                    level={
-                      typeof run.risk_score?.level === "string"
-                        ? run.risk_score.level
-                        : null
-                    }
-                  />
-                </div>
-              ) : null}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                disabled={isPending}
+                onClick={() => void refresh()}
+                variant="ghost"
+              >
+                <RefreshCcw className="size-4" />
+                Refresh
+              </Button>
+              <Button
+                disabled={isPending || (!!run && run.status !== "created")}
+                onClick={() => runAction("start")}
+                variant="secondary"
+              >
+                Start Run
+              </Button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              disabled={isPending}
-              onClick={() => void refresh()}
-              variant="ghost"
-            >
-              <RefreshCcw className="size-4" />
-              Refresh
-            </Button>
-            <Button
-              disabled={isPending || (!!run && run.status !== "created")}
-              onClick={() => runAction("start")}
-              variant="secondary"
-            >
-              Start Run
-            </Button>
-          </div>
+          {run ? (
+            <>
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                  Run {run.id}
+                </span>
+                <StatusBadge status={run.status} />
+                <RiskBadge
+                  level={
+                    typeof run.risk_score?.level === "string"
+                      ? run.risk_score.level
+                      : null
+                  }
+                />
+              </div>
+
+              <h1 className="max-w-4xl text-balance text-4xl font-semibold tracking-tight text-[#fafafa] sm:text-5xl">
+                {run.user_task}
+              </h1>
+
+              <div className="mt-4 grid gap-3 text-sm text-zinc-500 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                <span className="truncate">{run.repo_path}</span>
+                {run.expected_behavior ? <span>{run.expected_behavior}</span> : null}
+                {run.test_command ? (
+                  <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                    {run.test_command}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {workflowStages.map((stage) => {
+                  const active = currentStage(run) === stage;
+                  return (
+                    <span
+                      className={
+                        active
+                          ? "rounded-sm border border-zinc-300 px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-100"
+                          : "rounded-sm border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-600"
+                      }
+                      key={stage}
+                    >
+                      {stage.replaceAll("_", " ")}
+                    </span>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-4xl font-semibold tracking-tight text-[#fafafa] sm:text-5xl">
+                Run detail
+              </h1>
+              <p className="mt-3 text-sm text-zinc-500">Loading run state...</p>
+            </>
+          )}
         </header>
 
         {error ? (
-          <div className="mb-4 rounded-md border border-border bg-[#111111] px-4 py-3 text-sm text-zinc-300">
+          <div className="mt-4 border border-border bg-surface px-4 py-3 text-sm text-zinc-300">
             {error}
           </div>
         ) : null}
 
         {!run ? (
-          <div className="rounded-md border border-dashed border-border bg-surface px-6 py-10 text-sm text-zinc-500">
-            Loading run state...
-          </div>
+          <div className="py-10 text-sm text-zinc-500">Loading run state...</div>
         ) : (
-          <>
-            <section className="mb-4 grid gap-px overflow-hidden rounded-md border border-border bg-border md:grid-cols-3">
-              <div className="bg-[#0d0d0d] px-4 py-4">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                  Approval
-                </div>
-                <div className="mt-2 text-sm text-zinc-100">
-                  {signalValue(run, events, "approval")}
-                </div>
-              </div>
-              <div className="bg-[#0d0d0d] px-4 py-4">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                  Verification
-                </div>
-                <div className="mt-2 text-sm text-zinc-100">
-                  {signalValue(run, events, "verification")}
-                </div>
-              </div>
-              <div className="bg-[#0d0d0d] px-4 py-4">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                  Timeline events
-                </div>
-                <div className="mt-2 text-sm text-zinc-100">
-                  {signalValue(run, events, "events")}
-                </div>
-              </div>
-            </section>
+          <div className="flex-1 pt-6">
+            <AgentTimeline events={events} />
 
-            <section className="grid flex-1 gap-4 xl:grid-cols-[minmax(0,1.34fr)_minmax(360px,0.86fr)]">
-              <div className="min-w-0">
-                <AgentTimeline events={events} />
+            <section className="grid gap-10 pt-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="min-w-0 space-y-8">
+                <PatchPreviewCard patchDiff={run.patch_diff} />
+                <VerificationPanel verificationResult={run.verification_result} />
+                <RiskPanel riskScore={run.risk_score} />
+                <FinalReportCard report={run.final_report} />
               </div>
 
-              <div className="space-y-4">
-                <RunOverviewCard run={run} />
+              <aside className="space-y-8 xl:sticky xl:top-6 xl:self-start">
                 <ApprovalCard
                   approvalPayload={run.approval_payload}
                   approvalStatus={run.approval_status}
@@ -218,26 +244,11 @@ export function RunDetailShell({ runId }: { runId: number }) {
                   onApprove={() => runAction("approve")}
                   onReject={() => runAction("reject")}
                 />
-                <PatchPreviewCard patchDiff={run.patch_diff} />
-                <JsonCard
-                  description="Structured verification outcome from the backend verifier."
-                  title="Verification"
-                  value={run.verification_result}
-                />
-                <JsonCard
-                  description="Residual risk assessment after verification."
-                  title="Risk Score"
-                  value={run.risk_score}
-                />
-                <JsonCard
-                  description="Safe local test runner output captured after approval."
-                  title="Test Result"
-                  value={run.test_result}
-                />
-                <FinalReportCard report={run.final_report} />
-              </div>
+                <RunOverviewCard run={run} />
+                <TestResultPanel testResult={run.test_result} />
+              </aside>
             </section>
-          </>
+          </div>
         )}
       </div>
     </main>
