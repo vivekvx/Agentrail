@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.tools.path_policy import validate_repo_directory
+
 
 @dataclass(frozen=True)
 class RepoScanResult:
@@ -44,11 +46,7 @@ SKIP_DIRS = {
 
 
 def scan_repository(repo_path: str | Path) -> RepoScanResult:
-    root = Path(repo_path).expanduser().resolve()
-    if not root.exists():
-        raise FileNotFoundError(f"Repository path does not exist: {root}")
-    if not root.is_dir():
-        raise NotADirectoryError(f"Repository path is not a directory: {root}")
+    root = validate_repo_directory(repo_path)
 
     files = _list_files(root)
     relative_files = [file.relative_to(root).as_posix() for file in files]

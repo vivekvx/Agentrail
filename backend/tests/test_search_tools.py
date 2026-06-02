@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from subprocess import CompletedProcess
 
 import pytest
 
@@ -42,6 +43,53 @@ def test_search_code_falls_back_to_python_and_skips_ignored_folders(
             score=1,
         ),
     ]
+
+
+def test_search_code_excludes_secret_files_in_python_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(search_tools.shutil, "which", lambda _: None)
+    write_file(tmp_path / ".env", "needle=secret\n")
+    write_file(tmp_path / ".env.local", "needle=secret\n")
+    write_file(tmp_path / "secrets.json", '{"needle": "secret"}\n')
+    write_file(tmp_path / "cert.pem", "needle\n")
+    write_file(tmp_path / "deploy.key", "needle\n")
+    write_file(tmp_path / "app.py", "needle = 'safe'\n")
+
+    results = search_code(tmp_path, "needle", max_results=10)
+
+    assert results == [
+        SearchResult(
+            file_path="app.py",
+            line_number=1,
+            matched_line="needle = 'safe'",
+            score=1,
+        ),
+    ]
+
+
+def test_search_code_excludes_secret_files_in_ripgrep_command(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commands: list[list[str]] = []
+
+    def fake_run(command: list[str], **kwargs: object) -> CompletedProcess[str]:
+        commands.append(command)
+        return CompletedProcess(args=command, returncode=1, stdout="", stderr="")
+
+    monkeypatch.setattr(search_tools.shutil, "which", lambda _: "/usr/bin/rg")
+    monkeypatch.setattr(search_tools.subprocess, "run", fake_run)
+
+    assert search_code(tmp_path, "needle", max_results=10) == []
+
+    command = commands[0]
+    assert "!.env" in command
+    assert "!.env.*" in command
+    assert "!secrets.*" in command
+    assert "!*.pem" in command
+    assert "!*.key" in command
 
 
 def test_search_code_limits_results(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -5,6 +5,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.tools.path_policy import is_excluded_secret_file, validate_repo_directory
+
 
 IGNORED_FOLDERS = {
     ".git",
@@ -25,11 +27,7 @@ class SearchResult:
 
 
 def search_code(repo_path: str | Path, query: str, max_results: int = 50) -> list[SearchResult]:
-    root = Path(repo_path).expanduser().resolve()
-    if not root.exists():
-        raise FileNotFoundError(f"Repository path does not exist: {root}")
-    if not root.is_dir():
-        raise NotADirectoryError(f"Repository path is not a directory: {root}")
+    root = validate_repo_directory(repo_path)
     if not query:
         raise ValueError("Search query must not be empty")
     if max_results < 1:
@@ -57,6 +55,8 @@ def _search_with_ripgrep(
     ]
     for folder in sorted(IGNORED_FOLDERS):
         command.extend(["--glob", f"!{folder}/**"])
+    for pattern in (".env", ".env.*", "secrets.*", "*.pem", "*.key"):
+        command.extend(["--glob", f"!{pattern}"])
     command.extend([query, "."])
 
     completed = subprocess.run(
@@ -131,7 +131,7 @@ def _iter_searchable_files(root: Path) -> list[Path]:
         relative_parts = path.relative_to(root).parts
         if any(part in IGNORED_FOLDERS for part in relative_parts):
             continue
-        if path.is_file():
+        if path.is_file() and not is_excluded_secret_file(path):
             files.append(path)
     return sorted(files, key=lambda file_path: file_path.relative_to(root).as_posix())
 

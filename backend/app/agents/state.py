@@ -9,3 +9,7 @@ class AgentRunState(TypedDict, total=False):
     plan: dict[str, Any]
     repo_scan: dict[str, Any]
     search_results: list[dict[str, Any]]
+    evidence: list[dict[str, Any]]
+    root_cause: str
+    patch_diff: str
+    final_report: str

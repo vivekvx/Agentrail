@@ -19,6 +19,8 @@ class AgentRun(Base):
     repo_path: Mapped[str] = mapped_column(String(2048), nullable=False)
     user_task: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="created")
+    final_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
