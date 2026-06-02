@@ -17,6 +17,7 @@ def reporter_node(state: AgentRunState) -> dict[str, object]:
                 _patch_diff_section(state),
                 _approval_section(state),
                 _test_results_section(state),
+                _verification_section(state),
                 _next_step_section(),
             ],
         ),
@@ -135,6 +136,30 @@ def _test_results_section(state: AgentRunState) -> str:
         lines.extend(["Stdout:", "```text", stdout.rstrip(), "```"])
     if isinstance(stderr, str) and stderr:
         lines.extend(["Stderr:", "```text", stderr.rstrip(), "```"])
+    return "\n".join(lines)
+
+
+def _verification_section(state: AgentRunState) -> str:
+    verification_result = state.get("verification_result")
+    if not isinstance(verification_result, dict):
+        return ""
+
+    lines = [
+        "## Verification",
+        f"Status: {verification_result.get('status', 'unknown')}",
+        f"Confidence: {verification_result.get('confidence', 'low')}",
+        f"Summary: {verification_result.get('summary', '')}",
+    ]
+    checks = verification_result.get("checks", [])
+    if isinstance(checks, list) and checks:
+        lines.append("Checklist:")
+        for check in checks:
+            if not isinstance(check, dict):
+                continue
+            name = check.get("name", "Check")
+            status = check.get("status", "unknown")
+            details = check.get("details", "")
+            lines.append(f"- {name}: {status} - {details}")
     return "\n".join(lines)
 
 

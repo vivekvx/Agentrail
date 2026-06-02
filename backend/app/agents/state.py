@@ -16,4 +16,5 @@ class AgentRunState(TypedDict, total=False):
     rejection_reason: str
     test_command: str
     test_result: dict[str, Any]
+    verification_result: dict[str, Any]
     final_report: str

@@ -209,3 +209,9 @@ def test_agent_graph_runs_tests_after_approval(tmp_path: Path) -> None:
     assert result["test_result"]["command"] == "python -m pytest"
     assert "## Test Results" in result["final_report"]
     assert "Status: passed" in result["final_report"]
+    assert result["verification_result"]["status"] in {
+        "needs_manual_review",
+        "verified",
+    }
+    assert "## Verification" in result["final_report"]
+    assert "Confidence:" in result["final_report"]
