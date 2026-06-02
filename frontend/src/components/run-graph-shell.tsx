@@ -1,48 +1,23 @@
 "use client";
 
-import {
-  ReactFlow,
-  ReactFlowProvider,
-  type NodeMouseHandler,
-  type NodeTypes,
-} from "@xyflow/react";
+import { ReactFlowProvider } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, RefreshCcw } from "lucide-react";
 
 import { getRun, getRunEvents } from "@/lib/api";
-import {
-  buildReactFlowEdges,
-  buildReactFlowNodes,
-  buildWorkflowViews,
-} from "@/lib/agent-graph";
 import { saveRecentRunId } from "@/lib/recent-runs";
 import type { RunDetail, RunEvent } from "@/lib/types";
-import { AgentGraphNode } from "@/components/agent-graph-node";
+import { ExecutionGraphPanel } from "@/components/execution-graph-panel";
 import { RiskBadge } from "@/components/risk-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-
-const nodeTypes: NodeTypes = {
-  workflowNode: AgentGraphNode,
-};
 
 async function loadRunGraph(runId: number) {
   const [run, events] = await Promise.all([getRun(runId), getRunEvents(runId)]);
   saveRecentRunId(run.id);
   return { run, events };
-}
-
-function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "No timestamp";
-  }
-
-  return new Date(value).toLocaleString([], {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
 }
 
 function RunGraphShellInner({ runId }: { runId: number }) {
@@ -88,39 +63,6 @@ function RunGraphShellInner({ runId }: { runId: number }) {
     return () => window.clearInterval(interval);
   }, [refresh, run]);
 
-  const views = useMemo(() => {
-    if (!run) {
-      return [];
-    }
-    return buildWorkflowViews(run, events);
-  }, [events, run]);
-
-  const preferredView = useMemo(
-    () =>
-      views.find((view) => view.status === "running" || view.status === "failed") ??
-      [...views].reverse().find((view) =>
-        ["completed", "approved", "rejected"].includes(view.status),
-      ) ??
-      views[0] ??
-      null,
-    [views],
-  );
-
-  const highlightedNodeId = selectedNodeId || preferredView?.id || "";
-
-  const nodes = useMemo(
-    () => buildReactFlowNodes(views, highlightedNodeId),
-    [highlightedNodeId, views],
-  );
-  const edges = useMemo(() => buildReactFlowEdges(views), [views]);
-
-  const selectedView =
-    views.find((view) => view.id === highlightedNodeId) ?? preferredView;
-
-  const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
-    setSelectedNodeId(node.id);
-  }, []);
-
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-5 py-6 sm:px-8">
@@ -160,8 +102,7 @@ function RunGraphShellInner({ runId }: { runId: number }) {
                 Agent execution graph
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-500">
-                A read-only visualizer for the LangGraph workflow. This is the
-                execution artifact, not a workflow editor.
+                A read-only execution visualizer for the live run.
               </p>
             </>
           ) : (
@@ -177,101 +118,20 @@ function RunGraphShellInner({ runId }: { runId: number }) {
           </div>
         ) : null}
 
-        {!run || views.length === 0 ? (
+        {!run ? (
           <div className="py-10 text-sm text-zinc-500">Loading graph…</div>
         ) : (
-          <section className="grid flex-1 gap-8 pt-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="min-w-0 border border-border bg-surface">
-              <div className="border-b border-border px-5 py-4">
-                <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                  Execution graph
-                </div>
-                <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  The active node is highlighted. Completed nodes retain their
-                  place as a historical record.
-                </p>
-              </div>
-
-              <div className="h-[520px] w-full">
-                <ReactFlow
-                  defaultEdgeOptions={{ selectable: false, focusable: false }}
-                  edges={edges}
-                  fitView
-                  fitViewOptions={{ padding: 0.16 }}
-                  maxZoom={1}
-                  minZoom={0.3}
-                  nodes={nodes}
-                  nodesConnectable={false}
-                  nodesDraggable={false}
-                  nodeTypes={nodeTypes}
-                  onNodeClick={onNodeClick}
-                  panOnDrag
-                  proOptions={{ hideAttribution: true }}
-                  selectionOnDrag={false}
-                  zoomOnDoubleClick={false}
-                />
-              </div>
-            </div>
-
-            <aside className="border border-border bg-surface p-5 xl:sticky xl:top-6 xl:self-start">
-              {selectedView ? (
-                <>
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-                      Node {String(selectedView.order).padStart(2, "0")}
-                    </div>
-                    <div className="rounded-sm border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-300">
-                      {selectedView.status}
-                    </div>
-                  </div>
-
-                  <h2 className="text-xl font-semibold tracking-tight text-[#fafafa]">
-                    {selectedView.title}
-                  </h2>
-
-                  <div className="mt-5 space-y-5">
-                    <div className="border-t border-border pt-5">
-                      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
-                        Node name
-                      </div>
-                      <p className="mt-2 font-mono text-xs uppercase tracking-[0.16em] text-zinc-300">
-                        {selectedView.id}
-                      </p>
-                    </div>
-
-                    <div className="border-t border-border pt-5">
-                      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
-                        Purpose
-                      </div>
-                      <p className="mt-2 text-sm leading-7 text-zinc-300">
-                        {selectedView.purpose}
-                      </p>
-                    </div>
-
-                    <div className="border-t border-border pt-5">
-                      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
-                        Output summary
-                      </div>
-                      <p className="mt-2 text-sm leading-7 text-zinc-300">
-                        {selectedView.summary}
-                      </p>
-                    </div>
-
-                    <div className="border-t border-border pt-5">
-                      <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
-                        Timestamp
-                      </div>
-                      <p className="mt-2 text-sm text-zinc-300">
-                        {formatTimestamp(selectedView.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-zinc-500">Select a node to inspect it.</p>
-              )}
-            </aside>
-          </section>
+          <div className="flex-1 pt-8">
+            <ExecutionGraphPanel
+              description="Select a node to inspect its role, output, and most recent timestamp."
+              events={events}
+              onNodeSelect={setSelectedNodeId}
+              run={run}
+              selectedNodeId={selectedNodeId}
+              title="Workflow state"
+              variant="full"
+            />
+          </div>
         )}
       </div>
     </main>

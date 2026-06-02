@@ -41,9 +41,6 @@ export function ApprovalCard({
         <h3 className="mt-3 text-lg font-semibold tracking-tight text-[#fafafa]">
           Decision point
         </h3>
-        <p className="mt-2 text-sm leading-7 text-zinc-500">
-          The patch preview stops here until a human makes the call.
-        </p>
       </div>
 
       <div className="border-t border-border pt-4">
@@ -51,13 +48,15 @@ export function ApprovalCard({
           <Badge variant={statusVariant(approvalStatus)}>
             {approvalStatus ?? "awaiting decision"}
           </Badge>
-          <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
-            {evidenceCount !== null ? `${evidenceCount} evidence item(s)` : "No count"}
-          </span>
+          {evidenceCount !== null ? (
+            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+              {evidenceCount} evidence item(s)
+            </span>
+          ) : null}
         </div>
 
         <p className="text-sm leading-7 text-zinc-200">
-          {String(approvalPayload?.question ?? "Approve this patch?")}
+          {String(approvalPayload?.question ?? "Waiting for approval")}
         </p>
       </div>
 

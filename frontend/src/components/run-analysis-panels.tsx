@@ -5,7 +5,7 @@ function asRecord(value: JsonObject | null) {
 }
 
 function summaryText(value: unknown) {
-  return typeof value === "string" && value.length > 0 ? value : "n/a";
+  return typeof value === "string" && value.length > 0 ? value : "";
 }
 
 function listFromUnknown(value: unknown) {
@@ -47,11 +47,13 @@ export function VerificationPanel({
           Verification outcome
         </h2>
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          {summaryText(result?.confidence)} confidence
+          {summaryText(result?.confidence)
+            ? `${summaryText(result?.confidence)} confidence`
+            : "Waiting for verification"}
         </div>
       </div>
       <p className="mt-2 text-sm leading-7 text-zinc-500">
-        {summaryText(result?.summary)}
+        {summaryText(result?.summary) || "Verification has not run yet."}
       </p>
 
       <div className="mt-5 grid gap-3">
@@ -60,7 +62,7 @@ export function VerificationPanel({
             Status
           </span>
           <span className="text-sm text-zinc-100">
-            {summaryText(result?.status)}
+            {summaryText(result?.status) || "Waiting"}
           </span>
         </div>
 
@@ -91,7 +93,7 @@ export function VerificationPanel({
           </div>
         ) : (
           <div className="border-b border-border pb-3 text-sm text-zinc-500">
-            No verification detail yet.
+            Verification has not run yet.
           </div>
         )}
       </div>
@@ -119,12 +121,12 @@ export function RiskPanel({ riskScore }: { riskScore: JsonObject | null }) {
             {typeof result?.score === "number" ? result.score : "--"}
           </div>
           <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-            {summaryText(result?.level)}
+            {summaryText(result?.level) || "Waiting"}
           </div>
         </div>
       </div>
       <p className="mt-2 text-sm leading-7 text-zinc-500">
-        {summaryText(result?.summary)}
+        {summaryText(result?.summary) || "Risk score appears after verification."}
       </p>
 
       <div className="mt-5 space-y-3">
@@ -153,7 +155,7 @@ export function RiskPanel({ riskScore }: { riskScore: JsonObject | null }) {
           })
         ) : (
           <div className="border-b border-border pb-3 text-sm text-zinc-500">
-            No risk factors recorded yet.
+            Risk score appears after verification.
           </div>
         )}
       </div>
@@ -190,7 +192,7 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
           Verification command
         </h2>
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          {summaryText(result?.status)}
+          {summaryText(result?.status) || "Waiting"}
         </div>
       </div>
 
@@ -200,7 +202,7 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
             Exit code
           </div>
           <div className="mt-2 text-sm text-zinc-100">
-            {typeof result?.exit_code === "number" ? result.exit_code : "--"}
+            {typeof result?.exit_code === "number" ? result.exit_code : "Pending"}
           </div>
         </div>
         <div className="border-b border-border pb-3">
@@ -210,7 +212,7 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
           <div className="mt-2 text-sm text-zinc-100">
             {typeof result?.duration_ms === "number"
               ? `${result.duration_ms} ms`
-              : "--"}
+              : "Pending"}
           </div>
         </div>
         <div className="border-b border-border pb-3">
@@ -218,7 +220,7 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
             Status
           </div>
           <div className="mt-2 text-sm text-zinc-100">
-            {summaryText(result?.status)}
+            {summaryText(result?.status) || "Waiting"}
           </div>
         </div>
       </div>
@@ -248,7 +250,9 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
           ) : null}
         </div>
       ) : (
-        <p className="mt-4 text-sm text-zinc-500">No command output captured yet.</p>
+        <p className="mt-4 text-sm text-zinc-500">
+          Waiting for verification command output.
+        </p>
       )}
 
       <RawDetails value={testResult} />

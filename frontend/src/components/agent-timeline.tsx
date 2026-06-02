@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Activity,
   CheckCircle2,
@@ -5,7 +7,9 @@ import {
   ShieldAlert,
   TestTube2,
 } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
 
+import { getWorkflowNodeIdForEventType } from "@/lib/agent-graph";
 import type { RunEvent } from "@/lib/types";
 
 function eventIcon(eventType: string) {
@@ -47,7 +51,43 @@ function formatTimestamp(value: string) {
   });
 }
 
-export function AgentTimeline({ events }: { events: RunEvent[] }) {
+export function AgentTimeline({
+  events,
+  selectedNodeId,
+  selectionOrigin,
+  selectionVersion,
+  onEventSelect,
+}: {
+  events: RunEvent[];
+  selectedNodeId?: string;
+  selectionOrigin?: "graph" | "timeline" | null;
+  selectionVersion?: number;
+  onEventSelect?: (event: RunEvent, nodeId: string) => void;
+}) {
+  const eventRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
+
+  const highlightedEventIds = useMemo(() => {
+    if (!selectedNodeId) {
+      return new Set<number>();
+    }
+
+    return new Set(
+      events
+        .filter((event) => getWorkflowNodeIdForEventType(event.event_type) === selectedNodeId)
+        .map((event) => event.id),
+    );
+  }, [events, selectedNodeId]);
+
+  useEffect(() => {
+    if (selectionOrigin !== "graph" || highlightedEventIds.size === 0) {
+      return;
+    }
+
+    const firstId = [...highlightedEventIds][0];
+    const element = eventRefs.current.get(firstId);
+    element?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [highlightedEventIds, selectionOrigin, selectionVersion]);
+
   return (
     <section className="border-t border-border pt-5">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -58,10 +98,6 @@ export function AgentTimeline({ events }: { events: RunEvent[] }) {
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#fafafa]">
             Activity ledger
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-zinc-500">
-            Every major state change in the run, ordered as a readable
-            engineering trail.
-          </p>
         </div>
         <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
           {events.length} events
@@ -69,21 +105,46 @@ export function AgentTimeline({ events }: { events: RunEvent[] }) {
       </div>
 
       {events.length === 0 ? (
-        <div className="py-10 text-sm text-zinc-500">No events recorded yet.</div>
+        <div className="py-10 text-sm text-zinc-500">Waiting for run events.</div>
       ) : (
         <div className="scrollbar-thin max-h-[calc(100vh-13rem)] overflow-y-auto pr-2">
           {events.map((event, index) => {
             const Icon = eventIcon(event.event_type);
             const entries = payloadEntries(event.payload);
             const isLast = index === events.length - 1;
+            const nodeId = getWorkflowNodeIdForEventType(event.event_type);
+            const isHighlighted = highlightedEventIds.has(event.id);
 
             return (
-              <article
-                className="grid grid-cols-[36px_minmax(0,1fr)] gap-4 border-b border-border py-5"
+              <button
+                className={`grid w-full grid-cols-[36px_minmax(0,1fr)] gap-4 border-b py-5 text-left transition-colors ${
+                  isHighlighted
+                    ? "border-zinc-500 bg-[#111111]"
+                    : "border-border hover:bg-[#101010]"
+                }`}
                 key={event.id}
+                onClick={() => {
+                  if (nodeId && onEventSelect) {
+                    onEventSelect(event, nodeId);
+                  }
+                }}
+                ref={(element) => {
+                  if (element) {
+                    eventRefs.current.set(event.id, element);
+                  } else {
+                    eventRefs.current.delete(event.id);
+                  }
+                }}
+                type="button"
               >
                 <div className="relative flex flex-col items-center">
-                  <div className="flex size-8 items-center justify-center rounded-full border border-border bg-surface">
+                  <div
+                    className={`flex size-8 items-center justify-center rounded-full border ${
+                      isHighlighted
+                        ? "border-zinc-400 bg-[#151515]"
+                        : "border-border bg-surface"
+                    }`}
+                  >
                     <Icon className="size-4 text-zinc-300" />
                   </div>
                   {!isLast ? (
@@ -131,7 +192,7 @@ export function AgentTimeline({ events }: { events: RunEvent[] }) {
                     </div>
                   ) : null}
                 </div>
-              </article>
+              </button>
             );
           })}
         </div>

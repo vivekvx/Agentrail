@@ -26,9 +26,23 @@ export function AgentGraphNode({
   data,
   selected,
 }: NodeProps<WorkflowGraphNode>) {
+  const isCompact = data.variant === "compact";
+  const widthClass = isCompact ? "w-[168px]" : "w-[184px]";
+  const titleClass = isCompact ? "text-sm" : "text-[15px]";
+  const isActive = data.status === "running";
+  const isEmphasized = selected || data.isSelected;
+
   return (
     <div
-      className={`w-[168px] border bg-surface p-3.5 transition-colors ${selected || data.isSelected ? "border-zinc-300" : "border-border"}`}
+      className={`${widthClass} border bg-surface p-3.5 transition-colors ${
+        isEmphasized
+          ? "border-zinc-200"
+          : isActive
+            ? "border-zinc-500"
+            : data.isSkipped
+              ? "border-[#1f1f1f] opacity-55"
+              : "border-border"
+      }`}
     >
       <Handle
         id="target"
@@ -43,12 +57,12 @@ export function AgentGraphNode({
           {String(data.order).padStart(2, "0")}
         </div>
         <div className={`rounded-sm border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] ${statusClasses[data.status]}`}>
-          {statusLabel[data.status]}
+          {data.isSkipped ? "Skipped" : statusLabel[data.status]}
         </div>
       </div>
 
       <div>
-        <div className="text-sm font-medium text-zinc-100">{data.title}</div>
+        <div className={`${titleClass} font-medium text-zinc-100`}>{data.title}</div>
         <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
           {data.subtitle}
         </div>

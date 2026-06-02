@@ -1,5 +1,6 @@
 "use client";
 
+import { ReactFlowProvider } from "@xyflow/react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { GitBranch, RefreshCcw } from "lucide-react";
@@ -11,10 +12,12 @@ import {
   rejectRun,
   startRun,
 } from "@/lib/api";
+import { buildWorkflowViews, getPreferredWorkflowNodeId } from "@/lib/agent-graph";
 import { saveRecentRunId } from "@/lib/recent-runs";
 import type { RunDetail, RunEvent } from "@/lib/types";
 import { AgentTimeline } from "@/components/agent-timeline";
 import { ApprovalCard } from "@/components/approval-card";
+import { ExecutionGraphPanel } from "@/components/execution-graph-panel";
 import { FinalReportCard } from "@/components/final-report-card";
 import { PatchPreviewCard } from "@/components/patch-preview-card";
 import {
@@ -33,9 +36,12 @@ async function loadRunState(runId: number) {
   return { run, events };
 }
 
-export function RunDetailShell({ runId }: { runId: number }) {
+function RunDetailShellInner({ runId }: { runId: number }) {
   const [run, setRun] = useState<RunDetail | null>(null);
   const [events, setEvents] = useState<RunEvent[]>([]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>("");
+  const [selectionOrigin, setSelectionOrigin] = useState<"graph" | "timeline" | null>(null);
+  const [selectionVersion, setSelectionVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -75,6 +81,18 @@ export function RunDetailShell({ runId }: { runId: number }) {
     return () => window.clearInterval(interval);
   }, [refresh, run]);
 
+  const activeNodeId =
+    run && events.length >= 0
+      ? selectedNodeId ||
+        getPreferredWorkflowNodeId(buildWorkflowViews(run, events))
+      : selectedNodeId;
+
+  function updateSelection(nodeId: string, origin: "graph" | "timeline") {
+    setSelectedNodeId(nodeId);
+    setSelectionOrigin(origin);
+    setSelectionVersion((value) => value + 1);
+  }
+
   function runAction(action: "start" | "approve" | "reject") {
     startTransition(async () => {
       try {
@@ -113,7 +131,7 @@ export function RunDetailShell({ runId }: { runId: number }) {
               <Link href={`/runs/${runId}/graph`}>
                 <Button variant="ghost">
                   <GitBranch className="size-4" />
-                  Graph View
+                  Full Graph
                 </Button>
               </Link>
               <Button
@@ -184,7 +202,23 @@ export function RunDetailShell({ runId }: { runId: number }) {
           <div className="py-10 text-sm text-zinc-500">Loading run state...</div>
         ) : (
           <div className="flex-1 pt-6">
-            <AgentTimeline events={events} />
+            <ExecutionGraphPanel
+              description="Select a step to focus the matching events below."
+              events={events}
+              onNodeSelect={(nodeId) => updateSelection(nodeId, "graph")}
+              run={run}
+              selectedNodeId={activeNodeId}
+              title="Execution"
+              variant="compact"
+            />
+
+            <AgentTimeline
+              events={events}
+              onEventSelect={(_, nodeId) => updateSelection(nodeId, "timeline")}
+              selectedNodeId={activeNodeId}
+              selectionOrigin={selectionOrigin}
+              selectionVersion={selectionVersion}
+            />
 
             <section className="grid gap-10 pt-8 xl:grid-cols-[minmax(0,1fr)_340px]">
               <div className="min-w-0 space-y-8">
@@ -210,5 +244,13 @@ export function RunDetailShell({ runId }: { runId: number }) {
         )}
       </div>
     </main>
+  );
+}
+
+export function RunDetailShell({ runId }: { runId: number }) {
+  return (
+    <ReactFlowProvider>
+      <RunDetailShellInner runId={runId} />
+    </ReactFlowProvider>
   );
 }
