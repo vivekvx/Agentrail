@@ -15,6 +15,7 @@ def reporter_node(state: AgentRunState) -> dict[str, object]:
                 _evidence_section(state),
                 _root_cause_section(state),
                 _patch_diff_section(state),
+                _approval_section(state),
                 _next_step_section(),
             ],
         ),
@@ -98,6 +99,16 @@ def _patch_diff_section(state: AgentRunState) -> str:
     if not isinstance(patch_diff, str) or not patch_diff:
         return ""
     return f"## Patch Diff\n```diff\n{patch_diff.rstrip()}\n```"
+
+
+def _approval_section(state: AgentRunState) -> str:
+    approval_status = state.get("approval_status")
+    if approval_status == "approved":
+        return "## Approval\nPatch approved by user."
+    if approval_status == "rejected":
+        reason = state.get("rejection_reason", "Patch rejected by user.")
+        return f"## Approval\nPatch rejected by user.\n\nReason: {reason}"
+    return ""
 
 
 def _next_step_section() -> str:

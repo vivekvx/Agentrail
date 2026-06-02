@@ -12,4 +12,6 @@ class AgentRunState(TypedDict, total=False):
     evidence: list[dict[str, Any]]
     root_cause: str
     patch_diff: str
+    approval_status: str
+    rejection_reason: str
     final_report: str

@@ -63,18 +63,28 @@ def test_start_run_executes_graph_and_persists_final_report(
     assert start_response.status_code == 200
     started = start_response.json()
     assert started["id"] == created["id"]
-    assert started["status"] == "completed"
-    assert started["has_final_report"] is True
-    assert "# DevPilot Verify Report" in started["final_report"]
-    assert "Find FastAPI app setup" in started["final_report"]
-    assert "app/main.py:1-2" in started["final_report"]
+    assert started["status"] == "pending_approval"
+    assert started["has_final_report"] is False
+    assert started["final_report"] is None
+    assert started["approval_payload"]["question"] == "Approve this patch?"
+    assert started["approval_payload"]["evidence_count"] >= 1
+
+    approve_response = client.post(f"/api/runs/{created['id']}/approve")
+
+    assert approve_response.status_code == 200
+    approved = approve_response.json()
+    assert approved["status"] == "completed"
+    assert approved["has_final_report"] is True
+    assert "# DevPilot Verify Report" in approved["final_report"]
+    assert "Find FastAPI app setup" in approved["final_report"]
+    assert "app/main.py:1-2" in approved["final_report"]
 
     get_response = client.get(f"/api/runs/{created['id']}")
 
     assert get_response.status_code == 200
     retrieved = get_response.json()
     assert retrieved["status"] == "completed"
-    assert retrieved["final_report"] == started["final_report"]
+    assert retrieved["final_report"] == approved["final_report"]
 
 
 def test_start_run_returns_404_for_missing_run(client: TestClient) -> None:

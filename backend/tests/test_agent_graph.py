@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
+
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
 
 from app.agents.graph import build_agent_graph
 
@@ -10,6 +14,14 @@ def write_file(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def invoke_to_approval(input_state: dict[str, str]) -> tuple[object, dict[str, object]]:
+    graph = build_agent_graph(checkpointer=InMemorySaver())
+    config = {"configurable": {"thread_id": str(uuid4())}}
+    interrupted = graph.invoke(input_state, config=config)
+    assert "__interrupt__" in interrupted
+    return graph, config
+
+
 def test_agent_graph_runs_planner_repo_scanner_and_code_search(tmp_path: Path) -> None:
     write_file(tmp_path / "requirements.txt", "fastapi\npytest\n")
     write_file(
@@ -17,13 +29,13 @@ def test_agent_graph_runs_planner_repo_scanner_and_code_search(tmp_path: Path) -
         "from fastapi import FastAPI\napp = FastAPI()\n",
     )
 
-    graph = build_agent_graph()
-    result = graph.invoke(
+    graph, config = invoke_to_approval(
         {
             "repo_path": str(tmp_path),
             "user_task": "Find FastAPI app setup",
         },
     )
+    result = graph.invoke(Command(resume="approve"), config=config)
 
     assert result["plan"] == {
         "summary": "Inspect the repository, identify relevant files, then search for task terms.",
@@ -67,13 +79,13 @@ def test_agent_graph_runs_planner_repo_scanner_and_code_search(tmp_path: Path) -
 def test_agent_graph_handles_tasks_without_search_hits(tmp_path: Path) -> None:
     write_file(tmp_path / "README.md", "hello\n")
 
-    graph = build_agent_graph()
-    result = graph.invoke(
+    graph, config = invoke_to_approval(
         {
             "repo_path": str(tmp_path),
             "user_task": "Investigate database timeout",
         },
     )
+    result = graph.invoke(Command(resume="approve"), config=config)
 
     assert result["plan"]["search_queries"] == [
         "investigate",
@@ -94,13 +106,13 @@ def test_agent_graph_skips_secret_files_when_reading_evidence(tmp_path: Path) ->
     write_file(tmp_path / ".env", "database_url=postgres://secret\n")
     write_file(tmp_path / "app.py", "database_url = 'sqlite:///local.db'\n")
 
-    graph = build_agent_graph()
-    result = graph.invoke(
+    graph, config = invoke_to_approval(
         {
             "repo_path": str(tmp_path),
             "user_task": "Find DATABASE_URL",
         },
     )
+    result = graph.invoke(Command(resume="approve"), config=config)
 
     evidence_paths = [item["file_path"] for item in result["evidence"]]
     assert ".env" not in evidence_paths
@@ -126,13 +138,17 @@ def test_agent_graph_generates_auth_refresh_patch_preview(tmp_path: Path) -> Non
         ),
     )
 
-    graph = build_agent_graph()
-    result = graph.invoke(
+    graph, config = invoke_to_approval(
         {
             "repo_path": str(tmp_path),
             "user_task": "Fix AuthContext localStorage token persistence on refresh",
         },
     )
+    interrupted = graph.get_state(config).interrupts[0].value
+    assert interrupted["question"] == "Approve this patch?"
+    assert "src/AuthContext.tsx" in interrupted["patch_diff"]
+
+    result = graph.invoke(Command(resume="approve"), config=config)
 
     patch_diff = result["patch_diff"]
     assert "diff --git a/src/AuthContext.tsx b/src/AuthContext.tsx" in patch_diff
@@ -140,4 +156,35 @@ def test_agent_graph_generates_auth_refresh_patch_preview(tmp_path: Path) -> Non
     assert "useState<string | null>(() => {" in patch_diff
     assert result["final_report"].startswith("# DevPilot Verify Report")
     assert "## Patch Diff" in result["final_report"]
+    assert "## Approval\nPatch approved by user." in result["final_report"]
     assert "src/AuthContext.tsx" in result["final_report"]
+
+
+def test_agent_graph_rejects_patch_and_reports_reason(tmp_path: Path) -> None:
+    write_file(
+        tmp_path / "src" / "AuthContext.tsx",
+        "\n".join(
+            [
+                "export function AuthProvider() {",
+                "  const [token, setToken] = useState<string | null>(null);",
+                "  // token persistence should restore localStorage on refresh",
+                "  localStorage.setItem('token', token ?? '');",
+                "  return null;",
+                "}",
+                "",
+            ],
+        ),
+    )
+
+    graph, config = invoke_to_approval(
+        {
+            "repo_path": str(tmp_path),
+            "user_task": "Fix AuthContext localStorage token persistence",
+        },
+    )
+    result = graph.invoke(Command(resume="reject"), config=config)
+
+    assert result["approval_status"] == "rejected"
+    assert result["rejection_reason"] == "Patch rejected by user."
+    assert "## Approval\nPatch rejected by user." in result["final_report"]
+    assert "Reason: Patch rejected by user." in result["final_report"]

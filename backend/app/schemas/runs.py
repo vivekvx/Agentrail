@@ -15,6 +15,8 @@ class RunRead(BaseModel):
     repo_path: str
     user_task: str
     status: str
+    thread_id: str | None
+    approval_payload: str | None
     final_report: str | None
     error_message: str | None
     created_at: datetime
@@ -29,3 +31,10 @@ class RunStartResponse(BaseModel):
     has_final_report: bool
     final_report: str | None
     error_message: str | None
+    approval_payload: dict[str, object] | None = None
+
+
+class ApprovalResponse(BaseModel):
+    id: int
+    status: str
+    approval_payload: dict[str, object] | None
