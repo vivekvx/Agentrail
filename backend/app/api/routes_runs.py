@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,52 +16,50 @@ from app.tools.path_policy import validate_repo_directory
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
+ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:[^/\s:]+/)*[^/\s:]+")
 
 
 @router.post("", response_model=RunRead, status_code=status.HTTP_201_CREATED)
-def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> AgentRun:
+def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
     try:
         repo_path = validate_repo_directory(payload.repo_path)
     except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
+            detail=_sanitize_error_message(str(exc)),
         ) from exc
 
     run = AgentRun(
         repo_path=str(repo_path),
         user_task=payload.user_task,
+        expected_behavior=payload.expected_behavior,
+        test_command=payload.test_command,
         status="created",
         thread_id=str(uuid4()),
     )
     db.add(run)
     db.commit()
     db.refresh(run)
-    return run
+    return _run_read(run)
 
 
 @router.get("/{run_id}", response_model=RunRead)
-def get_run(run_id: int, db: Session = Depends(get_db)) -> AgentRun:
-    run = db.get(AgentRun, run_id)
-    if run is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Run not found",
-        )
-    return run
+def get_run(run_id: int, db: Session = Depends(get_db)) -> RunRead:
+    return _run_read(_get_run_or_404(run_id, db))
 
 
 @router.post("/{run_id}/start", response_model=RunStartResponse)
 def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
-    run = db.get(AgentRun, run_id)
-    if run is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Run not found",
-        )
+    run = _get_run_or_404(run_id, db)
 
     run.status = "running"
+    run.current_node = "planner"
     run.approval_payload = None
+    run.approval_status = None
+    run.patch_diff = None
+    run.test_result = None
+    run.verification_result = None
+    run.risk_score = None
     run.final_report = None
     run.error_message = None
     db.commit()
@@ -73,53 +72,44 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
             {
                 "repo_path": str(repo_path),
                 "user_task": run.user_task,
+                "test_command": run.test_command,
             },
             config=_thread_config(run),
         )
+        _persist_graph_result(run, result)
         interrupt_payload = _extract_interrupt_payload(result)
         if interrupt_payload is not None:
             run.status = "pending_approval"
+            run.current_node = "approval_node"
             run.approval_payload = json.dumps(interrupt_payload)
             run.error_message = None
             db.commit()
             db.refresh(run)
-            return RunStartResponse(
-                id=run.id,
-                status=run.status,
-                has_final_report=False,
-                final_report=None,
-                error_message=None,
-                approval_payload=interrupt_payload,
-            )
+            return _run_start_response(run)
 
         final_report = result.get("final_report")
         if not isinstance(final_report, str):
             raise RuntimeError("Graph did not produce a final report")
     except Exception as exc:
         run.status = "failed"
-        run.error_message = str(exc)
+        run.current_node = "error"
+        run.error_message = _sanitize_error_message(str(exc))
         db.commit()
         db.refresh(run)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Graph execution failed: {run.error_message}",
+            detail="Graph execution failed.",
         ) from exc
 
     run.status = "completed"
+    run.current_node = "reporter"
     run.final_report = final_report
     run.approval_payload = None
     run.error_message = None
     db.commit()
     db.refresh(run)
 
-    return RunStartResponse(
-        id=run.id,
-        status=run.status,
-        has_final_report=run.final_report is not None,
-        final_report=run.final_report,
-        error_message=run.error_message,
-        approval_payload=None,
-    )
+    return _run_start_response(run)
 
 
 @router.get("/{run_id}/approval", response_model=ApprovalResponse)
@@ -156,6 +146,7 @@ def _resume_run(
         )
 
     run.status = "running"
+    run.current_node = "test_runner" if decision == "approve" else "reporter"
     run.error_message = None
     db.commit()
     db.refresh(run)
@@ -163,33 +154,29 @@ def _resume_run(
     try:
         graph = build_agent_graph()
         result = graph.invoke(Command(resume=decision), config=_thread_config(run))
+        _persist_graph_result(run, result)
         final_report = result.get("final_report")
         if not isinstance(final_report, str):
             raise RuntimeError("Graph did not produce a final report")
     except Exception as exc:
         run.status = "failed"
-        run.error_message = str(exc)
+        run.current_node = "error"
+        run.error_message = _sanitize_error_message(str(exc))
         db.commit()
         db.refresh(run)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Graph execution failed: {run.error_message}",
+            detail="Graph execution failed.",
         ) from exc
 
     run.status = completed_status
+    run.current_node = "reporter"
     run.final_report = final_report
     run.error_message = None
     db.commit()
     db.refresh(run)
 
-    return RunStartResponse(
-        id=run.id,
-        status=run.status,
-        has_final_report=run.final_report is not None,
-        final_report=run.final_report,
-        error_message=run.error_message,
-        approval_payload=_load_approval_payload(run),
-    )
+    return _run_start_response(run)
 
 
 def _get_run_or_404(run_id: int, db: Session) -> AgentRun:
@@ -219,9 +206,90 @@ def _extract_interrupt_payload(result: dict[str, object]) -> dict[str, object] |
 
 
 def _load_approval_payload(run: AgentRun) -> dict[str, object] | None:
-    if run.approval_payload is None:
-        return None
-    loaded = json.loads(run.approval_payload)
+    loaded = _load_json_dict(run.approval_payload)
     if isinstance(loaded, dict):
         return loaded
     return None
+
+
+def _load_json_dict(value: str | None) -> dict[str, object] | None:
+    if value is None:
+        return None
+    loaded = json.loads(value)
+    if isinstance(loaded, dict):
+        return loaded
+    return None
+
+
+def _dump_json(value: object | None) -> str | None:
+    if value is None:
+        return None
+    return json.dumps(value)
+
+
+def _persist_graph_result(run: AgentRun, result: dict[str, object]) -> None:
+    run.patch_diff = _string_or_none(result.get("patch_diff"))
+    run.approval_status = _string_or_none(result.get("approval_status"))
+    run.final_report = _string_or_none(result.get("final_report"))
+    run.test_result = _dump_json(_dict_or_none(result.get("test_result")))
+    run.verification_result = _dump_json(_dict_or_none(result.get("verification_result")))
+    run.risk_score = _dump_json(_dict_or_none(result.get("risk_score")))
+
+
+def _run_read(run: AgentRun) -> RunRead:
+    return RunRead(
+        id=run.id,
+        repo_path=run.repo_path,
+        user_task=run.user_task,
+        expected_behavior=run.expected_behavior,
+        test_command=run.test_command,
+        status=run.status,
+        current_node=run.current_node,
+        final_report=run.final_report,
+        approval_payload=_load_json_dict(run.approval_payload),
+        approval_status=run.approval_status,
+        patch_diff=run.patch_diff,
+        test_result=_load_json_dict(run.test_result),
+        verification_result=_load_json_dict(run.verification_result),
+        risk_score=_load_json_dict(run.risk_score),
+        error_message=run.error_message,
+        created_at=run.created_at,
+        updated_at=run.updated_at,
+    )
+
+
+def _run_start_response(run: AgentRun) -> RunStartResponse:
+    return RunStartResponse(
+        id=run.id,
+        status=run.status,
+        current_node=run.current_node,
+        has_final_report=run.final_report is not None,
+        final_report=run.final_report,
+        approval_status=run.approval_status,
+        patch_diff=run.patch_diff,
+        test_result=_load_json_dict(run.test_result),
+        verification_result=_load_json_dict(run.verification_result),
+        risk_score=_load_json_dict(run.risk_score),
+        error_message=run.error_message,
+        approval_payload=_load_json_dict(run.approval_payload),
+    )
+
+
+def _dict_or_none(value: object) -> dict[str, object] | None:
+    return value if isinstance(value, dict) else None
+
+
+def _string_or_none(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _sanitize_error_message(message: str) -> str:
+    sanitized = message.strip().splitlines()[0]
+    sanitized = ABSOLUTE_PATH_PATTERN.sub("[path]", sanitized)
+    if sanitized.startswith("Repository path does not exist:"):
+        return "Repository path does not exist."
+    if sanitized.startswith("Repository path is not a directory:"):
+        return "Repository path is not a directory."
+    if sanitized.startswith("Repository path is outside allowed roots:"):
+        return "Repository path is outside allowed roots."
+    return sanitized.replace("Traceback", "").strip() or "Unexpected error."
