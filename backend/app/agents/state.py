@@ -14,4 +14,6 @@ class AgentRunState(TypedDict, total=False):
     patch_diff: str
     approval_status: str
     rejection_reason: str
+    test_command: str
+    test_result: dict[str, Any]
     final_report: str

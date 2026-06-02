@@ -186,5 +186,26 @@ def test_agent_graph_rejects_patch_and_reports_reason(tmp_path: Path) -> None:
 
     assert result["approval_status"] == "rejected"
     assert result["rejection_reason"] == "Patch rejected by user."
+    assert "test_result" not in result
     assert "## Approval\nPatch rejected by user." in result["final_report"]
     assert "Reason: Patch rejected by user." in result["final_report"]
+
+
+def test_agent_graph_runs_tests_after_approval(tmp_path: Path) -> None:
+    write_file(tmp_path / "target.py", "value = 'target'\n")
+    write_file(tmp_path / "test_sample.py", "def test_sample():\n    assert True\n")
+
+    graph, config = invoke_to_approval(
+        {
+            "repo_path": str(tmp_path),
+            "user_task": "Find target",
+            "test_command": "python -m pytest",
+        },
+    )
+    result = graph.invoke(Command(resume="approve"), config=config)
+
+    assert result["approval_status"] == "approved"
+    assert result["test_result"]["status"] == "passed"
+    assert result["test_result"]["command"] == "python -m pytest"
+    assert "## Test Results" in result["final_report"]
+    assert "Status: passed" in result["final_report"]

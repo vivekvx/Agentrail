@@ -16,6 +16,7 @@ def reporter_node(state: AgentRunState) -> dict[str, object]:
                 _root_cause_section(state),
                 _patch_diff_section(state),
                 _approval_section(state),
+                _test_results_section(state),
                 _next_step_section(),
             ],
         ),
@@ -111,9 +112,34 @@ def _approval_section(state: AgentRunState) -> str:
     return ""
 
 
+def _test_results_section(state: AgentRunState) -> str:
+    test_result = state.get("test_result")
+    if not isinstance(test_result, dict):
+        return ""
+
+    command = test_result.get("command")
+    status = test_result.get("status", "unknown")
+    exit_code = test_result.get("exit_code")
+    duration_ms = test_result.get("duration_ms")
+    stdout = test_result.get("stdout", "")
+    stderr = test_result.get("stderr", "")
+
+    lines = ["## Test Results", f"Status: {status}"]
+    if command:
+        lines.append(f"Command: `{command}`")
+    if exit_code is not None:
+        lines.append(f"Exit Code: {exit_code}")
+    if duration_ms is not None:
+        lines.append(f"Duration: {duration_ms}ms")
+    if isinstance(stdout, str) and stdout:
+        lines.extend(["Stdout:", "```text", stdout.rstrip(), "```"])
+    if isinstance(stderr, str) and stderr:
+        lines.extend(["Stderr:", "```text", stderr.rstrip(), "```"])
+    return "\n".join(lines)
+
+
 def _next_step_section() -> str:
     return (
         "## Next Step\n"
-        "Review the evidence, root cause, and patch diff before applying changes. "
-        "No tests were run by this reporter node."
+        "Review the evidence, root cause, patch diff, and test results before applying changes."
     )
