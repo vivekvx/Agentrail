@@ -18,6 +18,7 @@ def reporter_node(state: AgentRunState) -> dict[str, object]:
                 _approval_section(state),
                 _test_results_section(state),
                 _verification_section(state),
+                _risk_score_section(state),
                 _next_step_section(),
             ],
         ),
@@ -163,8 +164,35 @@ def _verification_section(state: AgentRunState) -> str:
     return "\n".join(lines)
 
 
+def _risk_score_section(state: AgentRunState) -> str:
+    risk_score = state.get("risk_score")
+    if not isinstance(risk_score, dict):
+        return ""
+
+    lines = [
+        "## Risk Score",
+        f"Level: {risk_score.get('level', 'unknown')}",
+        f"Score: {risk_score.get('score', 0)}",
+        f"Summary: {risk_score.get('summary', '')}",
+    ]
+    factors = risk_score.get("factors", [])
+    if isinstance(factors, list) and factors:
+        lines.append("Factors:")
+        for factor in factors:
+            if not isinstance(factor, dict):
+                continue
+            name = factor.get("name", "Factor")
+            impact = factor.get("impact", "unknown")
+            details = factor.get("details", "")
+            lines.append(f"- {name}: {impact} - {details}")
+    lines.append(
+        f"Recommended Action: {risk_score.get('recommended_action', 'Review manually before proceeding.')}",
+    )
+    return "\n".join(lines)
+
+
 def _next_step_section() -> str:
     return (
         "## Next Step\n"
-        "Review the evidence, root cause, patch diff, and test results before applying changes."
+        "Review the evidence, root cause, patch diff, verification, and risk score before applying changes."
     )

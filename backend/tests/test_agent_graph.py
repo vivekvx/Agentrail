@@ -215,3 +215,5 @@ def test_agent_graph_runs_tests_after_approval(tmp_path: Path) -> None:
     }
     assert "## Verification" in result["final_report"]
     assert "Confidence:" in result["final_report"]
+    assert result["risk_score"]["level"] in {"low", "medium", "high"}
+    assert "## Risk Score" in result["final_report"]

@@ -9,6 +9,7 @@ from app.agents.nodes.evidence_reader import evidence_reader_node
 from app.agents.nodes.patch_generator import patch_generator_node
 from app.agents.nodes.planner import planner_node
 from app.agents.nodes.reporter import reporter_node
+from app.agents.nodes.risk_scorer import risk_scorer_node
 from app.agents.nodes.repo_scanner import repo_scanner_node
 from app.agents.nodes.root_cause import root_cause_node
 from app.agents.nodes.test_runner import test_runner_node
@@ -30,6 +31,7 @@ def build_agent_graph(checkpointer=DEFAULT_CHECKPOINTER):
     graph.add_node("approval_node", approval_node)
     graph.add_node("test_runner", test_runner_node)
     graph.add_node("verifier", verifier_node)
+    graph.add_node("risk_scorer", risk_scorer_node)
     graph.add_node("reporter", reporter_node)
     graph.add_edge(START, "planner")
     graph.add_edge("planner", "repo_scanner")
@@ -40,6 +42,7 @@ def build_agent_graph(checkpointer=DEFAULT_CHECKPOINTER):
     graph.add_edge("patch_generator", "approval_node")
     graph.add_edge("approval_node", "test_runner")
     graph.add_edge("test_runner", "verifier")
-    graph.add_edge("verifier", "reporter")
+    graph.add_edge("verifier", "risk_scorer")
+    graph.add_edge("risk_scorer", "reporter")
     graph.add_edge("reporter", END)
     return graph.compile(checkpointer=checkpointer)

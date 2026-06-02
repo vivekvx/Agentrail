@@ -17,4 +17,5 @@ class AgentRunState(TypedDict, total=False):
     test_command: str
     test_result: dict[str, Any]
     verification_result: dict[str, Any]
+    risk_score: dict[str, Any]
     final_report: str
