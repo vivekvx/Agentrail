@@ -93,6 +93,56 @@ def _evidence_section(state: AgentRunState) -> str:
 
 
 def _root_cause_section(state: AgentRunState) -> str:
+    root_cause_analysis = state.get("root_cause_analysis")
+    if isinstance(root_cause_analysis, dict):
+        lines = ["## Root Cause"]
+        summary = root_cause_analysis.get("summary")
+        confidence = root_cause_analysis.get("confidence")
+        root_cause = root_cause_analysis.get("root_cause")
+        fix_strategy = root_cause_analysis.get("fix_strategy")
+        evidence_refs = root_cause_analysis.get("evidence_refs")
+        suspected_files = root_cause_analysis.get("suspected_files")
+        uncertainty = root_cause_analysis.get("uncertainty")
+        manual_checks = root_cause_analysis.get("manual_checks")
+
+        if isinstance(summary, str) and summary:
+            lines.append(f"Summary: {summary}")
+        if isinstance(confidence, str) and confidence:
+            lines.append(f"Confidence: {confidence}")
+        if isinstance(root_cause, str) and root_cause:
+            lines.append(f"Root Cause: {root_cause}")
+        if isinstance(evidence_refs, list) and evidence_refs:
+            lines.append("Evidence References:")
+            lines.extend(
+                f"- {reference}"
+                for reference in evidence_refs
+                if isinstance(reference, str) and reference
+            )
+        if isinstance(suspected_files, list) and suspected_files:
+            lines.append("Suspected Files:")
+            lines.extend(
+                f"- {file_path}"
+                for file_path in suspected_files
+                if isinstance(file_path, str) and file_path
+            )
+        if isinstance(fix_strategy, str) and fix_strategy:
+            lines.append(f"Fix Strategy: {fix_strategy}")
+        if isinstance(uncertainty, list) and uncertainty:
+            lines.append("Uncertainty:")
+            lines.extend(
+                f"- {item}"
+                for item in uncertainty
+                if isinstance(item, str) and item
+            )
+        if isinstance(manual_checks, list) and manual_checks:
+            lines.append("Manual Checks:")
+            lines.extend(
+                f"- {item}"
+                for item in manual_checks
+                if isinstance(item, str) and item
+            )
+        return "\n".join(lines)
+
     root_cause = state.get("root_cause", "No root cause generated.")
     return f"## Root Cause\n{root_cause}"
 

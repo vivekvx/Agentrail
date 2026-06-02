@@ -92,6 +92,7 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
             {
                 "repo_path": str(repo_path),
                 "user_task": run.user_task,
+                "expected_behavior": run.expected_behavior,
                 "test_command": run.test_command,
             },
             config=_thread_config(run),

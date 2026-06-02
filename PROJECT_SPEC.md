@@ -84,6 +84,10 @@ Expected output:
 
 Explain the likely root cause only after evidence has been collected.
 
+Optional note:
+
+- LLM-backed root cause analysis may enrich this phase, but it should remain optional and disabled by default with deterministic fallback available for local development and tests.
+
 Expected output:
 
 - Root cause statement
@@ -201,4 +205,3 @@ Expected output:
 - LangSmith for trace inspection and workflow observability.
 - DeepEval for regression and quality evaluation of agent behavior.
 - Probe for structural code search beyond text matching.
-

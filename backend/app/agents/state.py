@@ -6,11 +6,13 @@ from typing import Any, TypedDict
 class AgentRunState(TypedDict, total=False):
     repo_path: str
     user_task: str
+    expected_behavior: str
     plan: dict[str, Any]
     repo_scan: dict[str, Any]
     search_results: list[dict[str, Any]]
     evidence: list[dict[str, Any]]
     root_cause: str
+    root_cause_analysis: dict[str, Any]
     patch_diff: str
     approval_status: str
     rejection_reason: str
