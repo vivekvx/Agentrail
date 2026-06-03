@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "test": "node -e \"console.log('auth refresh eval test passed')\""
+  },
+  "dependencies": {
+    "react": "19.2.4"
+  }
+}

@@ -40,6 +40,7 @@ export function CreateRunForm() {
   const [error, setError] = useState<string | null>(null);
   const [repoPath, setRepoPath] = useState("");
   const [repoUrl, setRepoUrl] = useState("");
+  const [issueUrl, setIssueUrl] = useState("");
   const [userTask, setUserTask] = useState("");
   const [expectedBehavior, setExpectedBehavior] = useState("");
   const [testCommand, setTestCommand] = useState(DEFAULT_TEST_COMMAND);
@@ -47,8 +48,12 @@ export function CreateRunForm() {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    if (!repoPath.trim() && !repoUrl.trim()) {
-      setError("Either repo path or repo URL is required.");
+    if (!repoPath.trim() && !repoUrl.trim() && !issueUrl.trim()) {
+      setError("Repo path, repo URL, or GitHub issue URL is required.");
+      return;
+    }
+    if (!issueUrl.trim() && !userTask.trim()) {
+      setError("User task is required unless a GitHub issue URL is provided.");
       return;
     }
 
@@ -57,7 +62,8 @@ export function CreateRunForm() {
         const run = await createRun({
           repo_path: repoPath.trim() || undefined,
           repo_url: repoUrl.trim() || undefined,
-          user_task: userTask,
+          issue_url: issueUrl.trim() || undefined,
+          user_task: userTask.trim(),
           expected_behavior: expectedBehavior || undefined,
           test_command: testCommand || undefined,
         });
@@ -83,9 +89,9 @@ export function CreateRunForm() {
           Open a repository investigation.
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-7 text-[#a1a1aa]">
-          Start from a local repository path, define the task, and move into the
-          timeline view where evidence, approval, verification, and risk stay in
-          one place.
+          Start from a local repository path, public repository URL, or GitHub
+          issue URL. The timeline keeps evidence, approval, verification, and
+          risk in one place.
         </p>
       </div>
 
@@ -95,7 +101,7 @@ export function CreateRunForm() {
           label="Repo path"
         >
           <Input
-            placeholder="/Users/vivek/your-repo"
+            placeholder="/path/to/your-repo"
             value={repoPath}
             onChange={(event) => setRepoPath(event.target.value)}
           />
@@ -113,11 +119,21 @@ export function CreateRunForm() {
         </Field>
 
         <Field
-          description="Describe the issue, investigation goal, or behavior to verify."
+          description="Paste a GitHub issue URL to prefill repo and task context."
+          label="Issue URL"
+        >
+          <Input
+            placeholder="https://github.com/owner/repo/issues/123"
+            value={issueUrl}
+            onChange={(event) => setIssueUrl(event.target.value)}
+          />
+        </Field>
+
+        <Field
+          description="Describe the issue, investigation goal, or behavior to verify. Optional when using issue URL."
           label="User task"
         >
           <Textarea
-            required
             placeholder="Fix auth refresh bug after token reload."
             value={userTask}
             onChange={(event) => setUserTask(event.target.value)}

@@ -13,8 +13,10 @@ from app.core.config import get_settings
 from app.db.models import AgentRun, RunEvent
 from app.db.session import get_db
 from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead, RunStartResponse
+from app.services.github_issues import GitHubIssueFetchError, fetch_github_issue_context
 from app.services.repo_importer import import_github_repository
 from app.services.run_events import list_run_events, log_run_event
+from app.tools.github_issue_url import validate_github_issue_url
 from app.tools.github_url import validate_github_repo_url
 from app.tools.path_policy import resolve_path
 from app.tools.path_policy import validate_repo_directory
@@ -29,6 +31,10 @@ TOKEN_PATTERN = re.compile(r"\b(?:ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b"
 def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
     repo_path: str | None = None
     repo_url: str | None = None
+    issue_context: dict[str, object] | None = None
+    issue_url: str | None = None
+    user_task = payload.user_task.strip()
+    expected_behavior = payload.expected_behavior
 
     if payload.repo_path:
         try:
@@ -38,7 +44,40 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=_sanitize_error_message(str(exc)),
             ) from exc
-    elif payload.repo_url:
+
+    if payload.issue_url:
+        settings = get_settings()
+        if not settings.github_issue_import_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="GitHub issue import is disabled.",
+            )
+        try:
+            issue_ref = validate_github_issue_url(payload.issue_url)
+            issue = fetch_github_issue_context(payload.issue_url)
+        except (ValueError, GitHubIssueFetchError) as exc:
+            _persist_issue_import_failure(
+                db,
+                payload=payload,
+                issue_url=payload.issue_url,
+                message=_sanitize_error_message(str(exc)),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=_sanitize_error_message(str(exc)),
+            ) from exc
+        issue_context = issue.model_dump(mode="json")
+        issue_url = issue.issue_url
+        if repo_url is None and payload.repo_url is None:
+            repo_url = issue.repo_url
+        if not user_task:
+            user_task = _issue_user_task(issue_context)
+        if expected_behavior is None:
+            expected_behavior = _expected_behavior_from_issue(issue_context)
+    else:
+        issue_ref = None
+
+    if payload.repo_url:
         settings = get_settings()
         if not settings.github_import_enabled:
             raise HTTPException(
@@ -54,11 +93,19 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
             ) from exc
         repo_url = repo_info["repo_url"]
 
+    if not user_task:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="user_task is required unless issue_url is provided.",
+        )
+
     run = AgentRun(
         repo_path=repo_path,
         repo_url=repo_url,
-        user_task=payload.user_task,
-        expected_behavior=payload.expected_behavior,
+        issue_url=issue_url,
+        issue_context=_dump_json(issue_context),
+        user_task=user_task,
+        expected_behavior=expected_behavior,
         test_command=payload.test_command,
         status="created",
         thread_id=str(uuid4()),
@@ -66,6 +113,26 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
     db.add(run)
     db.commit()
     db.refresh(run)
+    if payload.issue_url and issue_ref is not None:
+        log_run_event(
+            db,
+            run.id,
+            "issue_import_started",
+            "GitHub issue import started",
+            payload={
+                "owner": issue_ref["owner"],
+                "repo": issue_ref["repo"],
+                "issue_number": issue_ref["issue_number"],
+                "issue_url": issue_ref["issue_url"],
+            },
+        )
+        log_run_event(
+            db,
+            run.id,
+            "issue_import_completed",
+            "GitHub issue import completed",
+            payload=_issue_event_payload(issue_context),
+        )
     log_run_event(
         db,
         run.id,
@@ -75,6 +142,7 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
             "status": run.status,
             "repo_path": run.repo_path,
             "repo_url": run.repo_url,
+            "issue_url": run.issue_url,
             "test_command": run.test_command,
         },
     )
@@ -395,6 +463,8 @@ def _run_read(run: AgentRun) -> RunRead:
         id=run.id,
         repo_path=_public_repo_path(run),
         repo_url=run.repo_url,
+        issue_url=run.issue_url,
+        issue_context=_load_json_dict(run.issue_context),
         user_task=run.user_task,
         expected_behavior=run.expected_behavior,
         test_command=run.test_command,
@@ -422,6 +492,8 @@ def _run_start_response(run: AgentRun) -> RunStartResponse:
         has_final_report=run.final_report is not None,
         repo_path=_public_repo_path(run),
         repo_url=run.repo_url,
+        issue_url=run.issue_url,
+        issue_context=_load_json_dict(run.issue_context),
         final_report=run.final_report,
         approval_status=run.approval_status,
         fix_strategy=_load_json_dict(run.fix_strategy),
@@ -466,7 +538,95 @@ def _sanitize_error_message(message: str) -> str:
         return "Repository path is outside allowed roots."
     if sanitized.startswith("GitHub repository import is disabled."):
         return "GitHub repository import is disabled."
+    if sanitized.startswith("GitHub issue import is disabled."):
+        return "GitHub issue import is disabled."
     return sanitized.replace("Traceback", "").strip() or "Unexpected error."
+
+
+def _issue_user_task(issue_context: dict[str, object]) -> str:
+    title = issue_context.get("title")
+    body = issue_context.get("body")
+    parts = [str(title).strip()] if isinstance(title, str) and title.strip() else []
+    if isinstance(body, str) and body.strip():
+        parts.append(body.strip())
+    return "\n\n".join(parts)
+
+
+def _expected_behavior_from_issue(issue_context: dict[str, object]) -> str | None:
+    body = issue_context.get("body")
+    if not isinstance(body, str):
+        return None
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.lower().startswith(("expected:", "expected behavior:")):
+            return stripped
+    return None
+
+
+def _issue_event_payload(issue_context: dict[str, object] | None) -> dict[str, object]:
+    if issue_context is None:
+        return {}
+    return {
+        "owner": issue_context.get("owner"),
+        "repo": issue_context.get("repo"),
+        "issue_number": issue_context.get("issue_number"),
+        "issue_url": issue_context.get("issue_url"),
+        "labels": issue_context.get("labels"),
+        "state": issue_context.get("state"),
+    }
+
+
+def _persist_issue_import_failure(
+    db: Session,
+    *,
+    payload: RunCreate,
+    issue_url: str,
+    message: str,
+) -> None:
+    run = AgentRun(
+        repo_path=None,
+        repo_url=payload.repo_url,
+        issue_url=issue_url,
+        user_task=payload.user_task.strip() or "GitHub issue import failed.",
+        expected_behavior=payload.expected_behavior,
+        test_command=payload.test_command,
+        status="failed",
+        current_node="issue_import",
+        error_message=message,
+        thread_id=str(uuid4()),
+    )
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+    event_payload: dict[str, object] = {"issue_url": issue_url}
+    try:
+        issue_ref = validate_github_issue_url(issue_url)
+        event_payload.update(
+            {
+                "owner": issue_ref["owner"],
+                "repo": issue_ref["repo"],
+                "issue_number": issue_ref["issue_number"],
+                "issue_url": issue_ref["issue_url"],
+            },
+        )
+    except ValueError:
+        pass
+    log_run_event(
+        db,
+        run.id,
+        "issue_import_started",
+        "GitHub issue import started",
+        payload=event_payload,
+    )
+    log_run_event(
+        db,
+        run.id,
+        "issue_import_failed",
+        "GitHub issue import failed",
+        message=message,
+        payload=event_payload,
+    )
+    db.commit()
 
 
 def _public_repo_path(run: AgentRun) -> str | None:

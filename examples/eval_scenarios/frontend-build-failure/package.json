@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build": "node -e \"console.error('build failure: missing component'); process.exit(1)\""
+  },
+  "dependencies": {
+    "react": "19.2.4",
+    "next": "16.2.7"
+  }
+}

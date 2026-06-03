@@ -8,7 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class RunCreate(BaseModel):
     repo_path: str | None = Field(default=None, min_length=1, max_length=2048)
     repo_url: str | None = Field(default=None, min_length=1, max_length=2048)
-    user_task: str = Field(min_length=1)
+    issue_url: str | None = Field(default=None, min_length=1, max_length=2048)
+    user_task: str = ""
     expected_behavior: str | None = None
     test_command: str | None = None
 
@@ -16,8 +17,10 @@ class RunCreate(BaseModel):
     def validate_repo_source(self) -> "RunCreate":
         if self.repo_path and self.repo_url:
             raise ValueError("Provide either repo_path or repo_url, not both.")
-        if not self.repo_path and not self.repo_url:
-            raise ValueError("Either repo_path or repo_url is required.")
+        if not self.repo_path and not self.repo_url and not self.issue_url:
+            raise ValueError("Either repo_path, repo_url, or issue_url is required.")
+        if not self.issue_url and not self.user_task.strip():
+            raise ValueError("user_task is required unless issue_url is provided.")
         return self
 
 
@@ -25,6 +28,8 @@ class RunRead(BaseModel):
     id: int
     repo_path: str | None
     repo_url: str | None
+    issue_url: str | None
+    issue_context: dict[str, object] | None
     user_task: str
     expected_behavior: str | None
     test_command: str | None
@@ -52,6 +57,8 @@ class RunStartResponse(BaseModel):
     has_final_report: bool
     repo_path: str | None = None
     repo_url: str | None = None
+    issue_url: str | None = None
+    issue_context: dict[str, object] | None = None
     final_report: str | None
     approval_status: str | None
     fix_strategy: dict[str, object] | None = None

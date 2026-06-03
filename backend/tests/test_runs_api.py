@@ -81,6 +81,115 @@ def test_create_run_with_repo_url_only(client: TestClient) -> None:
     assert created["status"] == "created"
 
 
+def test_create_run_with_issue_url_sets_repo_url_and_user_task(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class IssueContext:
+        owner = "openai"
+        repo = "codex"
+        issue_number = 123
+        issue_url = "https://github.com/openai/codex/issues/123"
+        repo_url = "https://github.com/openai/codex"
+        title = "Auth refresh loses token"
+        body = "Expected: user should stay signed in after refresh."
+        labels = ["bug", "auth"]
+        state = "open"
+        author = "octocat"
+        created_at = "2026-01-01T00:00:00Z"
+        updated_at = "2026-01-02T00:00:00Z"
+
+        def model_dump(self, mode: str = "json") -> dict[str, object]:
+            assert mode == "json"
+            return {
+                "owner": self.owner,
+                "repo": self.repo,
+                "issue_number": self.issue_number,
+                "issue_url": self.issue_url,
+                "repo_url": self.repo_url,
+                "title": self.title,
+                "body": self.body,
+                "labels": self.labels,
+                "state": self.state,
+                "author": self.author,
+                "created_at": self.created_at,
+                "updated_at": self.updated_at,
+            }
+
+    def fake_fetch(issue_url: str) -> IssueContext:
+        assert issue_url == "https://github.com/openai/codex/issues/123"
+        return IssueContext()
+
+    monkeypatch.setattr(routes_runs, "fetch_github_issue_context", fake_fetch)
+
+    response = client.post(
+        "/api/runs",
+        json={"issue_url": "https://github.com/openai/codex/issues/123"},
+    )
+
+    assert response.status_code == 201
+    created = response.json()
+    assert created["repo_url"] == "https://github.com/openai/codex"
+    assert created["issue_context"]["title"] == "Auth refresh loses token"
+    assert created["issue_context"]["labels"] == ["bug", "auth"]
+    assert "Auth refresh loses token" in created["user_task"]
+    assert "Expected: user should stay signed in" in (created["expected_behavior"] or "")
+
+
+def test_create_run_with_issue_url_logs_import_events(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class IssueContext:
+        owner = "openai"
+        repo = "codex"
+        issue_number = 123
+        issue_url = "https://github.com/openai/codex/issues/123"
+        repo_url = "https://github.com/openai/codex"
+        title = "Auth refresh loses token"
+        body = None
+        labels = ["bug"]
+        state = "open"
+        author = "octocat"
+        created_at = None
+        updated_at = None
+
+        def model_dump(self, mode: str = "json") -> dict[str, object]:
+            return {
+                "owner": self.owner,
+                "repo": self.repo,
+                "issue_number": self.issue_number,
+                "issue_url": self.issue_url,
+                "repo_url": self.repo_url,
+                "title": self.title,
+                "body": self.body,
+                "labels": self.labels,
+                "state": self.state,
+                "author": self.author,
+                "created_at": self.created_at,
+                "updated_at": self.updated_at,
+            }
+
+    monkeypatch.setattr(
+        routes_runs,
+        "fetch_github_issue_context",
+        lambda _issue_url: IssueContext(),
+    )
+
+    created = client.post(
+        "/api/runs",
+        json={"issue_url": "https://github.com/openai/codex/issues/123"},
+    ).json()
+
+    events = client.get(f"/api/runs/{created['id']}/events").json()
+    event_types = [event["event_type"] for event in events]
+    assert "issue_import_started" in event_types
+    assert "issue_import_completed" in event_types
+    completed = next(event for event in events if event["event_type"] == "issue_import_completed")
+    assert completed["payload"]["labels"] == ["bug"]
+    assert "token" not in str(completed["payload"]).lower()
+
+
 def test_create_run_rejects_both_repo_path_and_repo_url(
     client: TestClient,
     tmp_path: Path,

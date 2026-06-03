@@ -12,6 +12,8 @@ export interface RunDetail {
   id: number;
   repo_path: string | null;
   repo_url: string | null;
+  issue_url: string | null;
+  issue_context: JsonObject | null;
   user_task: string;
   expected_behavior: string | null;
   test_command: string | null;
@@ -36,6 +38,8 @@ export interface RunStartResponse {
   has_final_report: boolean;
   repo_path: string | null;
   repo_url: string | null;
+  issue_url: string | null;
+  issue_context: JsonObject | null;
   final_report: string | null;
   approval_status: string | null;
   patch_diff: string | null;
@@ -59,7 +63,8 @@ export interface RunEvent {
 export interface RunCreatePayload {
   repo_path?: string;
   repo_url?: string;
-  user_task: string;
+  issue_url?: string;
+  user_task?: string;
   expected_behavior?: string;
   test_command?: string;
 }
