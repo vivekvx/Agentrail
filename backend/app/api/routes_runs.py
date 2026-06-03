@@ -9,29 +9,54 @@ from langgraph.types import Command
 from sqlalchemy.orm import Session
 
 from app.agents.graph import build_agent_graph
+from app.core.config import get_settings
 from app.db.models import AgentRun, RunEvent
 from app.db.session import get_db
 from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead, RunStartResponse
+from app.services.repo_importer import import_github_repository
 from app.services.run_events import list_run_events, log_run_event
+from app.tools.github_url import validate_github_repo_url
+from app.tools.path_policy import resolve_path
 from app.tools.path_policy import validate_repo_directory
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:[^/\s:]+/)*[^/\s:]+")
+TOKEN_PATTERN = re.compile(r"\b(?:ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b")
 
 
 @router.post("", response_model=RunRead, status_code=status.HTTP_201_CREATED)
 def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
-    try:
-        repo_path = validate_repo_directory(payload.repo_path)
-    except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=_sanitize_error_message(str(exc)),
-        ) from exc
+    repo_path: str | None = None
+    repo_url: str | None = None
+
+    if payload.repo_path:
+        try:
+            repo_path = str(validate_repo_directory(payload.repo_path))
+        except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=_sanitize_error_message(str(exc)),
+            ) from exc
+    elif payload.repo_url:
+        settings = get_settings()
+        if not settings.github_import_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="GitHub repository import is disabled.",
+            )
+        try:
+            repo_info = validate_github_repo_url(payload.repo_url)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+        repo_url = repo_info["repo_url"]
 
     run = AgentRun(
-        repo_path=str(repo_path),
+        repo_path=repo_path,
+        repo_url=repo_url,
         user_task=payload.user_task,
         expected_behavior=payload.expected_behavior,
         test_command=payload.test_command,
@@ -49,6 +74,7 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
         payload={
             "status": run.status,
             "repo_path": run.repo_path,
+            "repo_url": run.repo_url,
             "test_command": run.test_command,
         },
     )
@@ -69,6 +95,7 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
     run.current_node = "planner"
     run.approval_payload = None
     run.approval_status = None
+    run.fix_strategy = None
     run.patch_diff = None
     run.test_result = None
     run.verification_result = None
@@ -86,7 +113,7 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
     db.refresh(run)
 
     try:
-        repo_path = validate_repo_directory(run.repo_path)
+        repo_path = _effective_repo_path(run, db)
         graph = build_agent_graph()
         result = graph.invoke(
             {
@@ -259,6 +286,67 @@ def _thread_config(run: AgentRun) -> dict[str, dict[str, str]]:
     return {"configurable": {"thread_id": thread_id}}
 
 
+def _effective_repo_path(run: AgentRun, db: Session) -> str:
+    if run.repo_path:
+        return str(validate_repo_directory(run.repo_path))
+    if not run.repo_url:
+        raise RuntimeError("Repository path does not exist.")
+
+    repo_info = validate_github_repo_url(run.repo_url)
+    log_run_event(
+        db,
+        run.id,
+        "repo_import_started",
+        "Repository import started",
+        payload={
+            "owner": repo_info["owner"],
+            "repo": repo_info["repo"],
+            "clone_url": repo_info["clone_url"],
+        },
+    )
+    db.commit()
+
+    try:
+        imported = import_github_repository(run.repo_url)
+    except Exception as exc:
+        message = _sanitize_error_message(str(exc)).replace(
+            run.repo_url,
+            "[repo_url]",
+        )
+        log_run_event(
+            db,
+            run.id,
+            "repo_import_failed",
+            "Repository import failed",
+            message=message,
+            payload={
+                "owner": repo_info["owner"],
+                "repo": repo_info["repo"],
+                "clone_url": repo_info["clone_url"],
+            },
+        )
+        db.commit()
+        raise RuntimeError(message) from exc
+
+    run.repo_path = str(imported.repo_path)
+    log_run_event(
+        db,
+        run.id,
+        "repo_import_completed",
+        "Repository import completed",
+        payload={
+            "owner": imported.owner,
+            "repo": imported.repo,
+            "clone_url": imported.clone_url,
+            "workspace_relative_path": imported.workspace_relative_path,
+            "used_cache": imported.used_cache,
+        },
+    )
+    db.commit()
+    db.refresh(run)
+    return run.repo_path
+
+
 def _extract_interrupt_payload(result: dict[str, object]) -> dict[str, object] | None:
     interrupts = result.get("__interrupt__")
     if not isinstance(interrupts, list) or not interrupts:
@@ -293,6 +381,7 @@ def _dump_json(value: object | None) -> str | None:
 
 
 def _persist_graph_result(run: AgentRun, result: dict[str, object]) -> None:
+    run.fix_strategy = _dump_json(_dict_or_none(result.get("fix_strategy")))
     run.patch_diff = _string_or_none(result.get("patch_diff"))
     run.approval_status = _string_or_none(result.get("approval_status"))
     run.final_report = _string_or_none(result.get("final_report"))
@@ -304,7 +393,8 @@ def _persist_graph_result(run: AgentRun, result: dict[str, object]) -> None:
 def _run_read(run: AgentRun) -> RunRead:
     return RunRead(
         id=run.id,
-        repo_path=run.repo_path,
+        repo_path=_public_repo_path(run),
+        repo_url=run.repo_url,
         user_task=run.user_task,
         expected_behavior=run.expected_behavior,
         test_command=run.test_command,
@@ -313,6 +403,7 @@ def _run_read(run: AgentRun) -> RunRead:
         final_report=run.final_report,
         approval_payload=_load_json_dict(run.approval_payload),
         approval_status=run.approval_status,
+        fix_strategy=_load_json_dict(run.fix_strategy),
         patch_diff=run.patch_diff,
         test_result=_load_json_dict(run.test_result),
         verification_result=_load_json_dict(run.verification_result),
@@ -329,8 +420,11 @@ def _run_start_response(run: AgentRun) -> RunStartResponse:
         status=run.status,
         current_node=run.current_node,
         has_final_report=run.final_report is not None,
+        repo_path=_public_repo_path(run),
+        repo_url=run.repo_url,
         final_report=run.final_report,
         approval_status=run.approval_status,
+        fix_strategy=_load_json_dict(run.fix_strategy),
         patch_diff=run.patch_diff,
         test_result=_load_json_dict(run.test_result),
         verification_result=_load_json_dict(run.verification_result),
@@ -363,13 +457,31 @@ def _string_or_none(value: object) -> str | None:
 def _sanitize_error_message(message: str) -> str:
     sanitized = message.strip().splitlines()[0]
     sanitized = ABSOLUTE_PATH_PATTERN.sub("[path]", sanitized)
+    sanitized = TOKEN_PATTERN.sub("[token]", sanitized)
     if sanitized.startswith("Repository path does not exist:"):
         return "Repository path does not exist."
     if sanitized.startswith("Repository path is not a directory:"):
         return "Repository path is not a directory."
     if sanitized.startswith("Repository path is outside allowed roots:"):
         return "Repository path is outside allowed roots."
+    if sanitized.startswith("GitHub repository import is disabled."):
+        return "GitHub repository import is disabled."
     return sanitized.replace("Traceback", "").strip() or "Unexpected error."
+
+
+def _public_repo_path(run: AgentRun) -> str | None:
+    if not run.repo_path:
+        return None
+    if not run.repo_url:
+        return run.repo_path
+
+    workspace_root = resolve_path(get_settings().repo_workspace_dir)
+    repo_path = resolve_path(run.repo_path)
+    try:
+        repo_path.relative_to(workspace_root)
+    except ValueError:
+        return run.repo_path
+    return None
 
 
 def _log_graph_state_events(db: Session, run: AgentRun, result: dict[str, object]) -> None:

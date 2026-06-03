@@ -14,6 +14,7 @@ def reporter_node(state: AgentRunState) -> dict[str, object]:
                 _files_found_section(state),
                 _evidence_section(state),
                 _root_cause_section(state),
+                _fix_strategy_section(state),
                 _patch_diff_section(state),
                 _approval_section(state),
                 _test_results_section(state),
@@ -154,6 +155,62 @@ def _patch_diff_section(state: AgentRunState) -> str:
     return f"## Patch Diff\n```diff\n{patch_diff.rstrip()}\n```"
 
 
+def _fix_strategy_section(state: AgentRunState) -> str:
+    fix_strategy = state.get("fix_strategy")
+    if not isinstance(fix_strategy, dict):
+        return ""
+
+    lines = ["## Fix Strategy"]
+    summary = fix_strategy.get("summary")
+    confidence = fix_strategy.get("confidence")
+    target_files = fix_strategy.get("target_files")
+    change_plan = fix_strategy.get("change_plan")
+    test_plan = fix_strategy.get("test_plan")
+    risks = fix_strategy.get("risks")
+    non_goals = fix_strategy.get("non_goals")
+
+    if isinstance(summary, str) and summary:
+        lines.append(f"Summary: {summary}")
+    if isinstance(confidence, str) and confidence:
+        lines.append(f"Confidence: {confidence}")
+    if isinstance(target_files, list) and target_files:
+        lines.append("Target Files:")
+        lines.extend(
+            f"- {file_path}"
+            for file_path in target_files
+            if isinstance(file_path, str) and file_path
+        )
+    if isinstance(change_plan, list) and change_plan:
+        lines.append("Change Plan:")
+        lines.extend(
+            f"- {item}"
+            for item in change_plan
+            if isinstance(item, str) and item
+        )
+    if isinstance(test_plan, list) and test_plan:
+        lines.append("Test Plan:")
+        lines.extend(
+            f"- {item}"
+            for item in test_plan
+            if isinstance(item, str) and item
+        )
+    if isinstance(risks, list) and risks:
+        lines.append("Risks:")
+        lines.extend(
+            f"- {item}"
+            for item in risks
+            if isinstance(item, str) and item
+        )
+    if isinstance(non_goals, list) and non_goals:
+        lines.append("Non-Goals:")
+        lines.extend(
+            f"- {item}"
+            for item in non_goals
+            if isinstance(item, str) and item
+        )
+    return "\n".join(lines)
+
+
 def _approval_section(state: AgentRunState) -> str:
     approval_status = state.get("approval_status")
     if approval_status == "approved":
@@ -170,6 +227,7 @@ def _test_results_section(state: AgentRunState) -> str:
         return ""
 
     command = test_result.get("command")
+    provider = test_result.get("provider", "local")
     status = test_result.get("status", "unknown")
     exit_code = test_result.get("exit_code")
     duration_ms = test_result.get("duration_ms")
@@ -177,6 +235,9 @@ def _test_results_section(state: AgentRunState) -> str:
     stderr = test_result.get("stderr", "")
 
     lines = ["## Test Results", f"Status: {status}"]
+    if isinstance(provider, str):
+        label = "E2B Sandbox" if provider == "e2b" else "Local Runner"
+        lines.append(f"Provider: {label}")
     if command:
         lines.append(f"Command: `{command}`")
     if exit_code is not None:

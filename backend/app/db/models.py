@@ -16,7 +16,8 @@ class AgentRun(Base):
     __tablename__ = "agent_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    repo_path: Mapped[str] = mapped_column(String(2048), nullable=False)
+    repo_path: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    repo_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     user_task: Mapped[str] = mapped_column(Text, nullable=False)
     expected_behavior: Mapped[str | None] = mapped_column(Text, nullable=True)
     test_command: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -25,6 +26,7 @@ class AgentRun(Base):
     thread_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     approval_payload: Mapped[str | None] = mapped_column(Text, nullable=True)
     approval_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    fix_strategy: Mapped[str | None] = mapped_column(Text, nullable=True)
     patch_diff: Mapped[str | None] = mapped_column(Text, nullable=True)
     test_result: Mapped[str | None] = mapped_column(Text, nullable=True)
     verification_result: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -17,6 +17,7 @@ def test_list_run_events_returns_events_in_creation_order() -> None:
     with SessionLocal() as db:
         run = AgentRun(
             repo_path="/tmp/repo",
+            repo_url=None,
             user_task="Inspect auth issue",
             status="created",
         )
@@ -40,6 +41,7 @@ def test_run_event_payloads_are_json_safe() -> None:
     with SessionLocal() as db:
         run = AgentRun(
             repo_path="/tmp/repo",
+            repo_url=None,
             user_task="Inspect auth issue",
             status="created",
         )

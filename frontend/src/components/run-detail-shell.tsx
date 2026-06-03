@@ -173,7 +173,9 @@ function RunDetailShellInner({ runId }: { runId: number }) {
               </h1>
 
               <div className="mt-4 grid gap-3 text-sm text-zinc-500 md:grid-cols-[minmax(0,1fr)_auto_auto]">
-                <span className="truncate">{run.repo_path}</span>
+                <span className="truncate">
+                  {run.repo_url ?? run.repo_path ?? "Repository path pending import"}
+                </span>
                 {run.expected_behavior ? <span>{run.expected_behavior}</span> : null}
                 {run.test_command ? (
                   <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">

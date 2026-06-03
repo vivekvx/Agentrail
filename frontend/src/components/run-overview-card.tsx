@@ -13,9 +13,20 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
             Repository
           </div>
           <p className="mt-2 break-all text-sm leading-7 text-zinc-200">
-            {run.repo_path}
+            {run.repo_url ?? run.repo_path ?? "Repository path pending import"}
           </p>
         </div>
+
+        {run.repo_url ? (
+          <div className="border-t border-border pt-5">
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+              GitHub URL
+            </div>
+            <p className="mt-2 break-all text-sm leading-7 text-zinc-300">
+              {run.repo_url}
+            </p>
+          </div>
+        ) : null}
 
         <div className="border-t border-border pt-5">
           <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">

@@ -39,6 +39,7 @@ export function CreateRunForm() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [repoPath, setRepoPath] = useState("");
+  const [repoUrl, setRepoUrl] = useState("");
   const [userTask, setUserTask] = useState("");
   const [expectedBehavior, setExpectedBehavior] = useState("");
   const [testCommand, setTestCommand] = useState(DEFAULT_TEST_COMMAND);
@@ -46,11 +47,16 @@ export function CreateRunForm() {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (!repoPath.trim() && !repoUrl.trim()) {
+      setError("Either repo path or repo URL is required.");
+      return;
+    }
 
     startTransition(async () => {
       try {
         const run = await createRun({
-          repo_path: repoPath,
+          repo_path: repoPath.trim() || undefined,
+          repo_url: repoUrl.trim() || undefined,
           user_task: userTask,
           expected_behavior: expectedBehavior || undefined,
           test_command: testCommand || undefined,
@@ -89,10 +95,20 @@ export function CreateRunForm() {
           label="Repo path"
         >
           <Input
-            required
             placeholder="/Users/vivek/your-repo"
             value={repoPath}
             onChange={(event) => setRepoPath(event.target.value)}
+          />
+        </Field>
+
+        <Field
+          description="Paste a public GitHub repository URL or use a local repo path."
+          label="Repo URL"
+        >
+          <Input
+            placeholder="https://github.com/owner/repo"
+            value={repoUrl}
+            onChange={(event) => setRepoUrl(event.target.value)}
           />
         </Field>
 

@@ -181,6 +181,12 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
     typeof result?.stderr === "string" && result.stderr.length > 0
       ? result.stderr
       : null;
+  const provider =
+    result?.provider === "e2b"
+      ? "E2B Sandbox"
+      : result?.provider === "local"
+        ? "Local Runner"
+        : "Waiting";
 
   return (
     <section className="border-t border-border pt-6">
@@ -196,7 +202,13 @@ export function TestResultPanel({ testResult }: { testResult: JsonObject | null 
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3">
+      <div className="mt-5 grid gap-3 md:grid-cols-4">
+        <div className="border-b border-border pb-3">
+          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+            Runner
+          </div>
+          <div className="mt-2 text-sm text-zinc-100">{provider}</div>
+        </div>
         <div className="border-b border-border pb-3">
           <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
             Exit code

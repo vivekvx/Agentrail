@@ -29,6 +29,7 @@ def test_create_and_get_run(client: TestClient, tmp_path: Path) -> None:
     assert created["id"] > 0
     assert created["status"] == "created"
     assert created["repo_path"] == str(tmp_path.resolve())
+    assert created["repo_url"] is None
     assert created["user_task"] == "Investigate failing health check"
 
     get_response = client.get(f"/api/runs/{created['id']}")

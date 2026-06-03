@@ -87,6 +87,7 @@ Explain the likely root cause only after evidence has been collected.
 Optional note:
 
 - LLM-backed root cause analysis may enrich this phase, but it should remain optional and disabled by default with deterministic fallback available for local development and tests.
+- The Fix Strategy Advisor is optional, structured, evidence-constrained, and does not generate code. It provides a high-level implementation plan that the patch generator may use only as advisory context.
 
 Expected output:
 
@@ -205,3 +206,21 @@ Expected output:
 - LangSmith for trace inspection and workflow observability.
 - DeepEval for regression and quality evaluation of agent behavior.
 - Probe for structural code search beyond text matching.
+
+## GitHub Repository Import
+
+- Public GitHub repositories can be imported with HTTPS URLs.
+- Imported repositories are cloned into a controlled local workspace for read-only analysis.
+- No commits or pull requests are created.
+- Private repository support is not included in this MVP.
+- GitHub token support is optional and must never be logged.
+- Import flow is read-only and does not write back to GitHub.
+
+### Optional E2B Sandbox Runner
+
+- Local safe test execution remains the default runner.
+- E2B can optionally run approved test commands inside isolated cloud sandboxes.
+- E2B requires `E2B_ENABLED=true` and an `E2B_API_KEY` before cloud execution is used.
+- Tests mock E2B and do not require a real sandbox or API key.
+- Sandbox uploads exclude secret-like files and heavy generated folders.
+- No patch is applied to the original repository during sandbox testing.

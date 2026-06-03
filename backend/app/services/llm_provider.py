@@ -37,6 +37,18 @@ class RootCauseAnalysis(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
+class FixStrategy(BaseModel):
+    summary: str = Field(min_length=1, max_length=1_000)
+    target_files: list[str] = Field(default_factory=list, max_length=12)
+    change_plan: list[str] = Field(default_factory=list, max_length=12)
+    test_plan: list[str] = Field(default_factory=list, max_length=12)
+    risks: list[str] = Field(default_factory=list, max_length=12)
+    non_goals: list[str] = Field(default_factory=list, max_length=12)
+    confidence: Literal["low", "medium", "high"]
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
 @lru_cache(maxsize=4)
 def _get_openai_client(api_key: str, timeout_seconds: int) -> object | None:
     if not api_key:
@@ -102,6 +114,67 @@ def analyze_root_cause(
         return None
 
     return _filter_analysis(parsed, prepared["allowed_refs"], prepared["allowed_files"])
+
+
+def propose_fix_strategy(
+    evidence: list[dict[str, object]],
+    user_task: str,
+    expected_behavior: str,
+    repo_summary: str,
+    root_cause: str,
+    root_cause_analysis: dict[str, object] | None = None,
+    *,
+    settings: Settings | None = None,
+) -> FixStrategy | None:
+    active_settings = settings or get_settings()
+    if not active_settings.llm_fix_strategy_enabled:
+        return None
+
+    client = _get_openai_client(
+        (active_settings.openai_api_key or "").strip(),
+        active_settings.llm_timeout_seconds,
+    )
+    if client is None:
+        return None
+
+    prepared = prepare_evidence_for_llm(evidence)
+    if not prepared["evidence"]:
+        return None
+
+    messages = _fix_strategy_messages(
+        evidence=prepared["evidence"],
+        user_task=user_task,
+        expected_behavior=expected_behavior,
+        repo_summary=repo_summary,
+        root_cause=root_cause,
+        root_cause_analysis=root_cause_analysis,
+    )
+    response_format = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "fix_strategy",
+            "strict": True,
+            "schema": FixStrategy.model_json_schema(),
+        },
+    }
+
+    try:
+        response = client.chat.completions.create(
+            model=(active_settings.openai_model or DEFAULT_OPENAI_MODEL).strip()
+            or DEFAULT_OPENAI_MODEL,
+            messages=messages,
+            response_format=response_format,
+        )
+        content = _response_text(response)
+        if not content:
+            return None
+        parsed = FixStrategy.model_validate_json(content)
+    except (AttributeError, TypeError, ValidationError, json.JSONDecodeError, ValueError):
+        return None
+    except Exception:
+        return None
+
+    return _filter_fix_strategy(parsed, prepared["allowed_files"])
 
 
 def prepare_evidence_for_llm(
@@ -199,6 +272,38 @@ def _messages(
     ]
 
 
+def _fix_strategy_messages(
+    *,
+    evidence: list[dict[str, str]],
+    user_task: str,
+    expected_behavior: str,
+    repo_summary: str,
+    root_cause: str,
+    root_cause_analysis: dict[str, object] | None,
+) -> list[dict[str, str]]:
+    instructions = (
+        "You are DevPilot Verify's fix strategy advisor. "
+        "Use only the provided evidence and root cause context. "
+        "Do not invent file paths. target_files must be selected only from evidence file paths. "
+        "Do not write code. Do not generate a diff. "
+        "Do not claim the patch is correct. Do not claim tests passed. "
+        "If evidence is weak, say so. Include practical manual checks in test_plan when confidence is low. "
+        "Treat auth, token, session, password, JWT, permission, CORS, secret, and config changes as sensitive."
+    )
+    payload = {
+        "user_task": user_task,
+        "expected_behavior": expected_behavior,
+        "repo_summary": repo_summary,
+        "root_cause": root_cause,
+        "root_cause_analysis": root_cause_analysis,
+        "evidence": evidence,
+    }
+    return [
+        {"role": "system", "content": instructions},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
+    ]
+
+
 def _response_text(response: object) -> str:
     output_text = getattr(response, "output_text", None)
     if isinstance(output_text, str) and output_text.strip():
@@ -245,6 +350,21 @@ def _filter_analysis(
         },
     )
     return filtered
+
+
+def _filter_fix_strategy(
+    strategy: FixStrategy,
+    allowed_files: set[str],
+) -> FixStrategy:
+    return strategy.model_copy(
+        update={
+            "target_files": [
+                file_path
+                for file_path in strategy.target_files
+                if file_path in allowed_files
+            ]
+        }
+    )
 
 
 def _truncate(value: str, limit: int) -> str:

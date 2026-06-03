@@ -10,7 +10,8 @@ export type RunStatus =
 
 export interface RunDetail {
   id: number;
-  repo_path: string;
+  repo_path: string | null;
+  repo_url: string | null;
   user_task: string;
   expected_behavior: string | null;
   test_command: string | null;
@@ -33,6 +34,8 @@ export interface RunStartResponse {
   status: RunStatus;
   current_node: string | null;
   has_final_report: boolean;
+  repo_path: string | null;
+  repo_url: string | null;
   final_report: string | null;
   approval_status: string | null;
   patch_diff: string | null;
@@ -54,7 +57,8 @@ export interface RunEvent {
 }
 
 export interface RunCreatePayload {
-  repo_path: string;
+  repo_path?: string;
+  repo_url?: string;
   user_task: string;
   expected_behavior?: string;
   test_command?: string;

@@ -99,6 +99,25 @@ def test_risk_scorer_verified_small_non_sensitive_patch_is_low_risk() -> None:
     assert 20 <= result["score"] < 40
 
 
+def test_risk_scorer_accepts_e2b_shaped_test_result() -> None:
+    state = _base_state()
+    state["test_result"] = {
+        "provider": "e2b",
+        "command": "python -m pytest",
+        "status": "passed",
+        "stdout": "1 passed",
+        "stderr": "",
+        "exit_code": 0,
+        "duration_ms": 25,
+        "sandbox_id": "sandbox-123",
+        "error_message": None,
+    }
+
+    result = risk_scorer_node(state)["risk_score"]
+
+    assert result["level"] == "low"
+
+
 def test_risk_scorer_verified_auth_patch_is_at_least_medium_risk() -> None:
     state = _base_state()
     state["patch_diff"] = (

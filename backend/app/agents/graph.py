@@ -6,6 +6,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from app.agents.nodes.approval import approval_node
 from app.agents.nodes.code_search import code_search_node
 from app.agents.nodes.evidence_reader import evidence_reader_node
+from app.agents.nodes.fix_strategy import fix_strategy_node
 from app.agents.nodes.patch_generator import patch_generator_node
 from app.agents.nodes.planner import planner_node
 from app.agents.nodes.reporter import reporter_node
@@ -27,6 +28,7 @@ def build_agent_graph(checkpointer=DEFAULT_CHECKPOINTER):
     graph.add_node("code_search", code_search_node)
     graph.add_node("evidence_reader", evidence_reader_node)
     graph.add_node("root_cause", root_cause_node)
+    graph.add_node("fix_strategy", fix_strategy_node)
     graph.add_node("patch_generator", patch_generator_node)
     graph.add_node("approval_node", approval_node)
     graph.add_node("test_runner", test_runner_node)
@@ -38,7 +40,8 @@ def build_agent_graph(checkpointer=DEFAULT_CHECKPOINTER):
     graph.add_edge("repo_scanner", "code_search")
     graph.add_edge("code_search", "evidence_reader")
     graph.add_edge("evidence_reader", "root_cause")
-    graph.add_edge("root_cause", "patch_generator")
+    graph.add_edge("root_cause", "fix_strategy")
+    graph.add_edge("fix_strategy", "patch_generator")
     graph.add_edge("patch_generator", "approval_node")
     graph.add_edge("approval_node", "test_runner")
     graph.add_edge("test_runner", "verifier")

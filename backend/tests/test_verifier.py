@@ -54,6 +54,29 @@ def test_verifier_approved_patch_evidence_and_passing_tests_is_verified_medium()
     assert "Manual review is still recommended" in result["summary"]
 
 
+def test_verifier_accepts_e2b_shaped_test_result() -> None:
+    state = _base_state()
+    state["test_result"] = {
+        "provider": "e2b",
+        "command": "python -m pytest",
+        "status": "passed",
+        "stdout": "1 passed",
+        "stderr": "",
+        "exit_code": 0,
+        "duration_ms": 25,
+        "sandbox_id": "sandbox-123",
+        "error_message": None,
+    }
+
+    result = verifier_node(state)["verification_result"]
+
+    assert result["status"] == "verified"
+    assert any(
+        check["name"] == "Tests" and check["status"] == "pass"
+        for check in result["checks"]
+    )
+
+
 def test_verifier_approved_with_skipped_tests_needs_manual_review() -> None:
     state = _base_state()
     state["test_result"] = {

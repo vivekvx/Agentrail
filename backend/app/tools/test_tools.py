@@ -4,6 +4,7 @@ import shlex
 import subprocess
 import time
 from dataclasses import asdict, dataclass
+from typing import Literal
 
 from app.tools.path_policy import validate_repo_directory
 
@@ -32,16 +33,24 @@ BLOCKED_PATTERNS = (
     "kill",
 )
 DEFAULT_TIMEOUT_SECONDS = 30
+TestProvider = Literal["local", "e2b"]
+TestStatus = Literal["passed", "failed", "skipped", "blocked", "error", "timeout"]
 
 
 @dataclass(frozen=True)
-class TestCommandResult:
+class SandboxTestResult:
+    provider: TestProvider
     command: str | None
-    status: str
+    status: TestStatus
     stdout: str
     stderr: str
     exit_code: int | None
     duration_ms: int
+    sandbox_id: str | None = None
+    error_message: str | None = None
+
+
+TestCommandResult = SandboxTestResult
 
 
 def run_test_command(
@@ -52,6 +61,7 @@ def run_test_command(
 ) -> TestCommandResult:
     if test_command is None or not test_command.strip():
         return TestCommandResult(
+            provider="local",
             command=test_command,
             status="skipped",
             stdout="",
@@ -60,8 +70,8 @@ def run_test_command(
             duration_ms=0,
         )
 
-    command = _normalize_command(test_command)
-    _validate_command(command)
+    command = normalize_test_command(test_command)
+    validate_test_command(command)
     cwd = validate_repo_directory(repo_path)
 
     started = time.monotonic()
@@ -76,6 +86,7 @@ def run_test_command(
         )
     except subprocess.TimeoutExpired as exc:
         return TestCommandResult(
+            provider="local",
             command=command,
             status="timeout",
             stdout=_safe_text(exc.stdout),
@@ -85,6 +96,7 @@ def run_test_command(
         )
 
     return TestCommandResult(
+        provider="local",
         command=command,
         status="passed" if completed.returncode == 0 else "failed",
         stdout=completed.stdout,
@@ -109,7 +121,7 @@ def run_test_command_asdict(
     )
 
 
-def _validate_command(command: str) -> None:
+def validate_test_command(command: str) -> None:
     lowered = command.lower()
     if any(pattern in lowered for pattern in BLOCKED_PATTERNS):
         raise ValueError(f"Blocked unsafe test command: {command}")
@@ -117,8 +129,17 @@ def _validate_command(command: str) -> None:
         raise ValueError(f"Test command is not allowed: {command}")
 
 
-def _normalize_command(command: str) -> str:
+def normalize_test_command(command: str) -> str:
     return " ".join(shlex.split(command))
+
+
+def command_args(command: str) -> list[str]:
+    validate_test_command(command)
+    return ALLOWED_COMMANDS[command]
+
+
+def sandbox_result_asdict(result: SandboxTestResult) -> dict[str, object]:
+    return asdict(result)
 
 
 def _duration_ms(started: float) -> int:

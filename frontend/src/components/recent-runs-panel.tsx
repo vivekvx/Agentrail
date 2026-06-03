@@ -112,7 +112,7 @@ export function RecentRunsPanel() {
                       {run.user_task}
                     </p>
                     <p className="mt-3 truncate font-mono text-[11px] text-zinc-600">
-                      {run.repo_path}
+                      {run.repo_url ?? run.repo_path ?? "Repository path pending import"}
                     </p>
                     <p className="mt-2 text-xs text-zinc-500">{summaryLine(run)}</p>
                   </div>
