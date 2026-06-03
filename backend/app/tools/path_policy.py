@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Iterable
 
 
-ALLOWED_ROOTS_ENV = "DEVPILOT_ALLOWED_REPO_ROOTS"
+ALLOWED_ROOTS_ENV = "AGENTRAIL_ALLOWED_REPO_ROOTS"
+LEGACY_ALLOWED_ROOTS_ENV = "DEVPILOT_ALLOWED_REPO_ROOTS"
 SECRET_FILE_PATTERNS = (
     ".env",
     ".env.",
@@ -62,7 +63,7 @@ def _allowed_roots(allowed_roots: Iterable[str | Path] | None) -> list[Path]:
     if allowed_roots is not None:
         roots = list(allowed_roots)
     else:
-        configured_roots = os.getenv(ALLOWED_ROOTS_ENV)
+        configured_roots = os.getenv(ALLOWED_ROOTS_ENV) or os.getenv(LEGACY_ALLOWED_ROOTS_ENV)
         if configured_roots:
             roots = [root for root in configured_roots.split(os.pathsep) if root]
         else:

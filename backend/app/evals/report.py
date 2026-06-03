@@ -10,9 +10,9 @@ def render_eval_report(
 ) -> str:
     result_by_id = {result.scenario_id: result for result in results}
     lines = [
-        "# DevPilot Verify Evaluation Report",
+        "# Agentrail Evaluation Report",
         "",
-        "This report summarizes deterministic project-specific evals for DevPilot Verify.",
+        "This report summarizes deterministic project-specific evals for Agentrail.",
         "No LLM-as-judge is used in this phase.",
         "",
         "## Coverage",
@@ -72,7 +72,7 @@ def render_eval_report(
             "- Metrics are deterministic string/structure checks, not semantic judges.",
             "- No real OpenAI, GitHub, or E2B credentials are required.",
             "- Private repository behavior is not evaluated.",
-            "- Patch application is not evaluated because DevPilot Verify only creates patch previews.",
+            "- Patch application is not evaluated because Agentrail only creates patch previews.",
         ],
     )
     return "\n".join(lines)

@@ -1,4 +1,4 @@
-const STORAGE_KEY = "devpilot-verify-recent-runs";
+const STORAGE_KEY = "agentrail-recent-runs";
 
 export function loadRecentRunIds(): number[] {
   if (typeof window === "undefined") {

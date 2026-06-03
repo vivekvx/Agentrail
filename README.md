@@ -1,12 +1,14 @@
-# DevPilot Verify
+# Agentrail
 
 Verification-first AI software engineering agent for safe, evidence-backed bug fixes.
 
-DevPilot Verify analyzes real repositories, finds evidence, explains root cause, proposes a fix strategy, generates a patch preview, pauses for human approval, runs tests safely, verifies the result, scores risk, and produces a final engineering report. It is a local/portfolio MVP with production-minded safety design, not a fully autonomous production coding system.
+Repository: [vivekvx/Agentrail](https://github.com/vivekvx/Agentrail)
+
+Agentrail analyzes real repositories, finds evidence, explains root cause, proposes a fix strategy, generates a patch preview, pauses for human approval, runs tests safely, verifies the result, scores risk, and produces a final engineering report. It is a local/portfolio MVP with production-minded safety design, not a fully autonomous production coding system.
 
 ## Why This Exists
 
-AI coding tools can generate code quickly, but generated code still needs evidence, human approval, test execution, verification, risk scoring, and review-ready reporting. DevPilot Verify is built around that missing engineering loop.
+AI coding tools can generate code quickly, but generated code still needs evidence, human approval, test execution, verification, risk scoring, and review-ready reporting. Agentrail is built around that missing engineering loop.
 
 This project is not another coding chatbot. It treats repository contents and model output as untrusted, records how conclusions were reached, shows patch previews before any approval step, runs allowlisted verification commands, and reports residual risk.
 
@@ -58,7 +60,7 @@ Current screenshots live in `frontend/artifacts/`. Before publishing, copy the l
 ### Human-in-the-Loop Safety
 
 - LangGraph approval interrupt before test execution continues.
-- Patch preview only; DevPilot Verify does not apply patches to the original repository.
+- Patch preview only; Agentrail does not apply patches to the original repository.
 - Approval and rejection states are persisted for review.
 
 ### Verification
@@ -176,7 +178,7 @@ cd backend
 uv run python -m app.evals.runner
 ```
 
-The eval suite is not SWE-bench. It is a small deterministic regression suite for validating DevPilot Verify behavior: repo scan, search, evidence, root-cause grounding, patch-preview grounding, approval interrupt, test result handling, verifier status, risk level, and report sections.
+The eval suite is not SWE-bench. It is a small deterministic regression suite for validating Agentrail behavior: repo scan, search, evidence, root-cause grounding, patch-preview grounding, approval interrupt, test result handling, verifier status, risk level, and report sections.
 
 ## Environment Variables
 
@@ -188,6 +190,8 @@ The eval suite is not SWE-bench. It is a small deterministic regression suite fo
 | `LLM_FIX_STRATEGY_ENABLED` | Enables structured LLM fix strategy when true. |
 | `E2B_ENABLED` | Enables the optional E2B sandbox runner when true. |
 | `E2B_API_KEY` | Optional key required only when E2B sandbox execution is enabled. |
+| `AGENTRAIL_API_BASE_URL` | Frontend proxy target for the FastAPI backend when deployed separately. |
+| `AGENTRAIL_ALLOWED_REPO_ROOTS` | Optional path allowlist for local repository access. |
 | `REPO_WORKSPACE_DIR` | Controlled workspace for imported GitHub repositories. |
 | `GITHUB_IMPORT_ENABLED` | Enables public GitHub repository import when true. |
 | `GITHUB_ISSUE_IMPORT_ENABLED` | Enables read-only public GitHub issue import when true. |
@@ -196,6 +200,12 @@ The eval suite is not SWE-bench. It is a small deterministic regression suite fo
 | `MAX_ISSUE_BODY_CHARS` | Maximum issue body length copied into run context. |
 
 LLM features are optional. E2B is optional. The local deterministic workflow works without external API keys.
+
+## Deployment
+
+Frontend deployment target: [agentrail.vercel.app](https://agentrail.vercel.app).
+
+The Vercel deployment serves the Agentrail UI and static product pages. Set `AGENTRAIL_API_BASE_URL` in Vercel when a public backend is available.
 
 ## API Overview
 
@@ -253,7 +263,7 @@ Detailed roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Resume Bullets
 
-- Built DevPilot Verify, a verification-first AI software engineering agent using FastAPI, LangGraph, Next.js, structured LLM outputs, and optional E2B sandboxing.
+- Built Agentrail, a verification-first AI software engineering agent using FastAPI, LangGraph, Next.js, structured LLM outputs, and optional E2B sandboxing.
 - Designed a LangGraph workflow for repository scanning, planning, code search, evidence extraction, root-cause analysis, fix strategy generation, patch preview, human approval, test execution, verification, risk scoring, and report generation.
 - Implemented safety guardrails including patch-preview-only workflow, human approval interrupts, command allowlisting, secret filtering, sanitized errors, read-only GitHub import, and optional isolated sandbox execution.
 - Built a monochrome developer dashboard with run creation, event timeline, visual execution graph, patch approval, verification results, risk scoring, and final engineering reports.

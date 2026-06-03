@@ -16,8 +16,8 @@ from app.tools.test_tools import (
 )
 
 
-SANDBOX_WORKDIR = "/home/user/devpilot-workspace"
-SANDBOX_ARCHIVE_PATH = "/tmp/devpilot-repo.tar.gz"
+SANDBOX_WORKDIR = "/home/user/agentrail-workspace"
+SANDBOX_ARCHIVE_PATH = "/tmp/agentrail-repo.tar.gz"
 EXCLUDED_DIRS = {
     ".git",
     "node_modules",

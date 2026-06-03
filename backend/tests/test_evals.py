@@ -112,7 +112,7 @@ def test_eval_report_generation_does_not_require_external_services() -> None:
 
     report = render_eval_report([scenario], [result])
 
-    assert "# DevPilot Verify Evaluation Report" in report
+    assert "# Agentrail Evaluation Report" in report
     assert "Sample scenario" in report
     assert "No LLM-as-judge" in report
 
@@ -192,7 +192,7 @@ def _successful_state() -> dict[str, object]:
         "risk_score": {"level": "medium", "score": 45, "factors": []},
         "final_report": "\n\n".join(
             [
-                "# DevPilot Verify Report",
+                "# Agentrail Report",
                 "## Task",
                 "## Evidence",
                 "## Root Cause",

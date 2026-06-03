@@ -1,4 +1,4 @@
-# DevPilot Verify Roadmap
+# Agentrail Roadmap
 
 ## Completed
 
@@ -59,11 +59,11 @@ MVP boundary:
 
 - Do not open PRs automatically.
 - Export draft text only.
-- Keep human review and repository write control outside DevPilot Verify.
+- Keep human review and repository write control outside Agentrail.
 
 ## Final MVP Status
 
-DevPilot Verify is complete for the original portfolio goal after Phase 28.
+Agentrail is complete for the original portfolio goal after Phase 28.
 
 ## Post-MVP Ideas
 

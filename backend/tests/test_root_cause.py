@@ -13,7 +13,7 @@ from app.services.llm_provider import RootCauseAnalysis
 
 def make_settings(**overrides: object) -> Settings:
     values = {
-        "database_url": "sqlite:///./test_devpilot_verify.db",
+        "database_url": "sqlite:///./test_agentrail.db",
         "openai_api_key": None,
         "openai_model": "gpt-4.1-mini",
         "llm_root_cause_enabled": False,

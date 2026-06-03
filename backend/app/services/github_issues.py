@@ -43,7 +43,7 @@ def fetch_github_issue_context(
     )
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "DevPilot-Verify",
+        "User-Agent": "Agentrail",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     if settings.github_token:

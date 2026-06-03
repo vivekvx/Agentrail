@@ -1,4 +1,4 @@
-# DevPilot Verify Demo Script
+# Agentrail Demo Script
 
 ## 2-Minute Demo
 
@@ -12,7 +12,7 @@ Script:
 2. If using an issue URL, show how the issue title/body prefill the task and repo context. If using a repo/path, enter a concrete bug description and expected behavior manually.
 3. Start the run and show the event timeline as the agent scans the repo, searches code, gathers evidence, and produces root-cause analysis.
 4. Open the run detail view and point out line-numbered evidence and the generated fix strategy.
-5. Show the patch preview and approval card. Emphasize that DevPilot Verify does not apply the patch to the original repository.
+5. Show the patch preview and approval card. Emphasize that Agentrail does not apply the patch to the original repository.
 6. Approve the patch preview so the workflow can continue into verification.
 7. Show the test result, verifier output, and risk score.
 8. Show the final report.
@@ -20,7 +20,7 @@ Script:
 
 Closing line:
 
-> DevPilot Verify packages the responsible engineering loop around AI-generated fixes: inspect, prove, approve, verify, score risk, and report.
+> Agentrail packages the responsible engineering loop around AI-generated fixes: inspect, prove, approve, verify, score risk, and report.
 
 ## 5-Minute Demo
 
@@ -82,11 +82,11 @@ Closing line:
    - Generate PR Draft.
    - Review title and Markdown body.
    - Copy the draft into a manual PR description.
-   - Emphasize that DevPilot Verify does not open a PR or write to GitHub.
+   - Emphasize that Agentrail does not open a PR or write to GitHub.
 
 ## Interview Talking Points
 
-- Verification-first matters because AI output can be plausible without being correct. DevPilot Verify forces the system to collect evidence before reporting confidence.
+- Verification-first matters because AI output can be plausible without being correct. Agentrail forces the system to collect evidence before reporting confidence.
 - The agent is not fully autonomous because repository changes still need human review. The MVP generates patch previews and preserves review control.
 - Human approval is required so a user can inspect the root cause, evidence, patch diff, and risk before the workflow continues.
 - Structured LLM output is safer than free text because fields can be validated, persisted, and rendered consistently. Deterministic fallbacks keep tests stable.
@@ -99,6 +99,6 @@ Closing line:
 - E2B requires an API key when enabled.
 - LLM features are optional and disabled by default for deterministic local behavior.
 - Private GitHub repository support is not included in this MVP.
-- GitHub issue import is read-only; DevPilot Verify does not comment, close issues, or open PRs.
+- GitHub issue import is read-only; Agentrail does not comment, close issues, or open PRs.
 - PR Draft Export is copy-only; it does not push branches, commit code, or create GitHub PRs.
 - The project is portfolio-ready, but not claimed as production-ready.

@@ -1,12 +1,12 @@
-# DevPilot Verify Safety Model
+# Agentrail Safety Model
 
 ## Scope
 
-DevPilot Verify is a local/portfolio MVP with production-minded safety design. It is intended to make AI-assisted bug fixing more inspectable and reviewable, not to replace code review or CI.
+Agentrail is a local/portfolio MVP with production-minded safety design. It is intended to make AI-assisted bug fixing more inspectable and reviewable, not to replace code review or CI.
 
 ## Threat Model
 
-DevPilot Verify treats these inputs as untrusted:
+Agentrail treats these inputs as untrusted:
 
 - Repository contents
 - User tasks
@@ -107,9 +107,9 @@ Local command execution uses `shell=False`, validates repository paths, captures
 - Public GitHub issue URLs are validated.
 - Pull request URLs are rejected for now.
 - Issue import is read-only.
-- DevPilot Verify does not comment on issues.
-- DevPilot Verify does not close, reopen, label, assign, or edit issues.
-- DevPilot Verify does not create pull requests.
+- Agentrail does not comment on issues.
+- Agentrail does not close, reopen, label, assign, or edit issues.
+- Agentrail does not create pull requests.
 - GitHub token use is optional for public issues and must not be logged.
 - Issue body content is truncated before entering run context.
 - Timeline payloads include issue metadata only: owner, repo, issue number, issue URL, labels, and state.

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DevPilot Verify",
+  title: "Agentrail",
   description: "Verification-first AI coding agent command center.",
 };
 

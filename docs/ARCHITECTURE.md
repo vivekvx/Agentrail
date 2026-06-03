@@ -1,8 +1,8 @@
-# DevPilot Verify Architecture
+# Agentrail Architecture
 
 ## System Overview
 
-DevPilot Verify is a verification-first AI software engineering agent. It is structured as a local/portfolio MVP with production-minded safety boundaries: the backend orchestrates a LangGraph workflow, the frontend renders an inspectable developer dashboard, and repository tools collect evidence before any fix is trusted.
+Agentrail is a verification-first AI software engineering agent. It is structured as a local/portfolio MVP with production-minded safety boundaries: the backend orchestrates a LangGraph workflow, the frontend renders an inspectable developer dashboard, and repository tools collect evidence before any fix is trusted.
 
 ```text
 Next.js UI
@@ -34,7 +34,7 @@ Next.js UI
 - `src/app/page.tsx`: dashboard route.
 - `src/app/runs/[id]/page.tsx`: run detail route.
 - `src/app/runs/[id]/graph/page.tsx`: graph view route.
-- `src/app/api/devpilot/[...path]/route.ts`: frontend proxy to backend API.
+- `src/app/api/agentrail/[...path]/route.ts`: frontend proxy to backend API.
 - `src/components/create-run-form.tsx`: run creation.
 - `src/components/agent-timeline.tsx`: event timeline.
 - `src/components/execution-graph-panel.tsx`: visual workflow graph.

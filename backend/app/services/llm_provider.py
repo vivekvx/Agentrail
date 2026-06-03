@@ -250,7 +250,7 @@ def _messages(
     repo_summary: str,
 ) -> list[dict[str, str]]:
     instructions = (
-        "You are DevPilot Verify's root cause analyzer. "
+        "You are Agentrail's root cause analyzer. "
         "Use only the provided evidence. "
         "Do not invent file paths, evidence references, test outcomes, or patch correctness. "
         "If the evidence is insufficient, say so explicitly in summary, uncertainty, and manual checks. "
@@ -282,7 +282,7 @@ def _fix_strategy_messages(
     root_cause_analysis: dict[str, object] | None,
 ) -> list[dict[str, str]]:
     instructions = (
-        "You are DevPilot Verify's fix strategy advisor. "
+        "You are Agentrail's fix strategy advisor. "
         "Use only the provided evidence and root cause context. "
         "Do not invent file paths. target_files must be selected only from evidence file paths. "
         "Do not write code. Do not generate a diff. "

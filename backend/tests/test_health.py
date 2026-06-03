@@ -11,7 +11,7 @@ def test_health_endpoint_returns_ok(client: TestClient) -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "service": "devpilot-verify",
+        "service": "agentrail",
     }
 
 
@@ -76,7 +76,7 @@ def test_start_run_executes_graph_and_persists_final_report(
     approved = approve_response.json()
     assert approved["status"] == "completed"
     assert approved["has_final_report"] is True
-    assert "# DevPilot Verify Report" in approved["final_report"]
+    assert "# Agentrail Report" in approved["final_report"]
     assert "Find FastAPI app setup" in approved["final_report"]
     assert "app/main.py:1-2" in approved["final_report"]
 

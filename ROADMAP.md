@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-# DevPilot Verify Roadmap
+# Agentrail Roadmap
 
 ## Phase 0: Planning Foundations
 

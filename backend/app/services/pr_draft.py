@@ -92,7 +92,7 @@ def _state_dict(value: object) -> dict[str, Any]:
 
 def _title(state: dict[str, Any]) -> str:
     task = _sanitize(_string(state.get("user_task"))).strip()
-    first_line = task.splitlines()[0].strip() if task else "Prepare DevPilot Verify patch"
+    first_line = task.splitlines()[0].strip() if task else "Prepare Agentrail patch"
     first_line = first_line.rstrip(".")
     if not first_line.lower().startswith(("fix ", "add ", "update ", "remove ", "restore ")):
         first_line = f"Fix {first_line[0].lower()}{first_line[1:]}" if first_line else "Prepare patch preview"
@@ -134,7 +134,7 @@ def _patch_summary(files_changed: list[str], state: dict[str, Any]) -> str:
         return "No patch preview was generated. Use this draft as investigation context only."
     approval_status = _string(state.get("approval_status")) or "unknown"
     return (
-        "Patch preview only. It has not been applied by DevPilot Verify. "
+        "Patch preview only. It has not been applied by Agentrail. "
         f"Approval status: {approval_status}. Files in preview: {', '.join(files_changed)}."
     )
 
@@ -184,13 +184,13 @@ def _summary(
     approval_status = _string(state.get("approval_status")) or "unknown"
     if approval_status == "rejected":
         return (
-            f"Draft generated from a rejected DevPilot Verify run. Patch preview covers {file_text}; "
+            f"Draft generated from a rejected Agentrail run. Patch preview covers {file_text}; "
             "do not merge unless a human prepares and approves a revised patch."
         )
     return (
-        f"Draft generated from a DevPilot Verify patch preview covering {file_text}. "
+        f"Draft generated from an Agentrail patch preview covering {file_text}. "
         f"Verification status: {verification_status}. Risk level: {risk_level}. "
-        "DevPilot Verify did not apply these changes."
+        "Agentrail did not apply these changes."
     )
 
 

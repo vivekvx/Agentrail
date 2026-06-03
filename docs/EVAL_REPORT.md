@@ -1,8 +1,8 @@
-# DevPilot Verify Evaluation Report
+# Agentrail Evaluation Report
 
-Phase 26 adds a deterministic evaluation suite for DevPilot Verify.
+Phase 26 adds a deterministic evaluation suite for Agentrail.
 
-This is not SWE-bench. It is a small project-specific regression suite that checks whether the DevPilot Verify workflow behaves correctly across controlled local scenarios.
+This is not SWE-bench. It is a small project-specific regression suite that checks whether the Agentrail workflow behaves correctly across controlled local scenarios.
 
 ## What Evaluation Covers
 
@@ -76,6 +76,6 @@ PYTHONDONTWRITEBYTECODE=1 uv run --isolated --extra dev pytest -p no:cacheprovid
 - No LLM-as-judge is used.
 - No real OpenAI, GitHub, or E2B credentials are required.
 - The suite uses small local fixtures, not broad benchmark repositories.
-- Patch application is not evaluated because DevPilot Verify generates patch previews only.
+- Patch application is not evaluated because Agentrail generates patch previews only.
 - Private GitHub repository flows are not evaluated.
 - Risk score expectations are coarse and deterministic.

@@ -140,7 +140,7 @@ def _insert_run() -> int:
             test_result=json.dumps(_test_result()),
             verification_result=json.dumps({"status": "verified", "summary": "Tests passed."}),
             risk_score=json.dumps({"level": "medium", "score": 45, "summary": "Medium risk."}),
-            final_report="# DevPilot Verify Report",
+            final_report="# Agentrail Report",
             thread_id="test-pr-draft",
         )
         db.add(run)
@@ -169,7 +169,7 @@ def _run_state(
         "verification_result": verification_result
         or {"status": "verified", "summary": "Tests passed."},
         "risk_score": risk_score or {"level": "medium", "score": 45, "summary": "Medium risk."},
-        "final_report": "# DevPilot Verify Report",
+        "final_report": "# Agentrail Report",
     }
 
 

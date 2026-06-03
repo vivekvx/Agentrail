@@ -1,14 +1,14 @@
-# DevPilot Verify Resume Bullets
+# Agentrail Resume Bullets
 
 ## Short Version
 
-- Built DevPilot Verify, a verification-first AI software engineering agent using FastAPI, LangGraph, Next.js, structured LLM outputs, and optional E2B sandboxing.
+- Built Agentrail, a verification-first AI software engineering agent using FastAPI, LangGraph, Next.js, structured LLM outputs, and optional E2B sandboxing.
 - Designed an evidence-backed agent workflow for repo scanning, code search, root-cause analysis, patch preview, approval, test execution, verification, risk scoring, and final reporting.
 - Implemented safety guardrails including patch-preview-only workflow, human approval interrupts, command allowlisting, secret filtering, sanitized errors, and read-only GitHub import.
 
 ## Detailed Version
 
-- Built DevPilot Verify, a local/portfolio MVP for verification-first AI-assisted bug fixing across FastAPI, React, and Next.js repositories.
+- Built Agentrail, a local/portfolio MVP for verification-first AI-assisted bug fixing across FastAPI, React, and Next.js repositories.
 - Designed a LangGraph workflow with explicit planner, repository scanner, code search, evidence reader, root-cause analyzer, fix-strategy advisor, patch generator, approval gate, test runner, verifier, risk scorer, and reporter nodes.
 - Added optional structured LLM root-cause and fix-strategy outputs while preserving deterministic fallback paths for stable local development and tests.
 - Implemented a safe verification layer with local allowlisted command execution, `shell=False`, structured test results, optional E2B sandbox execution, secret-aware archive filtering, and sanitized error reporting.
@@ -38,8 +38,8 @@
 
 ## Portfolio Description
 
-DevPilot Verify is a verification-first AI software engineering agent that analyzes repositories, gathers line-numbered evidence, explains root cause, proposes a fix strategy, generates a patch preview, requires human approval, runs safe verification commands, scores residual risk, and produces a final engineering report. It demonstrates full-stack product engineering, agent workflow design, AI safety guardrails, and practical developer experience design.
+Agentrail is a verification-first AI software engineering agent that analyzes repositories, gathers line-numbered evidence, explains root cause, proposes a fix strategy, generates a patch preview, requires human approval, runs safe verification commands, scores residual risk, and produces a final engineering report. It demonstrates full-stack product engineering, agent workflow design, AI safety guardrails, and practical developer experience design.
 
 ## LinkedIn Project Description
 
-Built DevPilot Verify, a verification-first AI software engineering agent for safe, evidence-backed bug fixing. The project combines FastAPI, LangGraph, Next.js, TypeScript, structured LLM outputs, read-only GitHub import, a local safe test runner, optional E2B sandboxing, verifier/risk scoring, and a monochrome developer dashboard. The core idea: AI-generated fixes should come with evidence, human approval, verification, residual risk, and a review-ready report.
+Built Agentrail, a verification-first AI software engineering agent for safe, evidence-backed bug fixing. The project combines FastAPI, LangGraph, Next.js, TypeScript, structured LLM outputs, read-only GitHub import, a local safe test runner, optional E2B sandboxing, verifier/risk scoring, and a monochrome developer dashboard. The core idea: AI-generated fixes should come with evidence, human approval, verification, residual risk, and a review-ready report.

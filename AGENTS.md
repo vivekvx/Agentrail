@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project
-DevPilot Verify is a verification-first AI coding agent.
+Agentrail is a verification-first AI coding agent.
 
 ## Tech Stack
 Backend: FastAPI, Python, Pydantic v2, SQLAlchemy, PostgreSQL.

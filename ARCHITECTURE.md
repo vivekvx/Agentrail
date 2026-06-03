@@ -1,10 +1,10 @@
 # ARCHITECTURE.md
 
-# DevPilot Verify Architecture
+# Agentrail Architecture
 
 ## System Overview
 
-DevPilot Verify is organized around a verification-first agent workflow. The system should keep orchestration, repository analysis, patch generation, verification, persistence, and user interaction as separate concerns.
+Agentrail is organized around a verification-first agent workflow. The system should keep orchestration, repository analysis, patch generation, verification, persistence, and user interaction as separate concerns.
 
 Target stack:
 

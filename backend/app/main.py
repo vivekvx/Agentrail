@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="DevPilot Verify API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Agentrail API", version="0.1.0", lifespan=lifespan)
 app.include_router(runs_router)
 
 
@@ -23,5 +23,5 @@ app.include_router(runs_router)
 def health() -> dict[str, str]:
     return {
         "status": "ok",
-        "service": "devpilot-verify",
+        "service": "agentrail",
     }

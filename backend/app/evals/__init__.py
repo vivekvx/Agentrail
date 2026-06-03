@@ -1,1 +1,1 @@
-"""Deterministic evaluation helpers for DevPilot Verify."""
+"""Deterministic evaluation helpers for Agentrail."""

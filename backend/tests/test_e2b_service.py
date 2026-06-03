@@ -116,7 +116,7 @@ def test_e2b_runner_uploads_archive_and_runs_allowed_command(
         def run(self, cmd: str, **kwargs: object) -> SimpleNamespace:
             commands.append(cmd)
             if cmd == "python -m pytest":
-                assert kwargs["cwd"] == "/home/user/devpilot-workspace"
+                assert kwargs["cwd"] == "/home/user/agentrail-workspace"
                 assert kwargs["timeout"] == 120
                 return SimpleNamespace(
                     stdout="1 passed",
@@ -159,11 +159,11 @@ def test_e2b_runner_uploads_archive_and_runs_allowed_command(
     assert result.exit_code == 0
     assert result.sandbox_id == "sandbox-123"
     assert commands[:3] == [
-        "mkdir -p /home/user/devpilot-workspace",
-        "tar -xzf /tmp/devpilot-repo.tar.gz -C /home/user/devpilot-workspace",
+        "mkdir -p /home/user/agentrail-workspace",
+        "tar -xzf /tmp/agentrail-repo.tar.gz -C /home/user/agentrail-workspace",
         "python -m pytest",
     ]
-    assert writes[0][0] == "/tmp/devpilot-repo.tar.gz"
+    assert writes[0][0] == "/tmp/agentrail-repo.tar.gz"
 
 
 def test_e2b_error_sanitization_does_not_leak_api_key(

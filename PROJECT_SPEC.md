@@ -1,10 +1,10 @@
 # PROJECT_SPEC.md
 
-# DevPilot Verify Project Spec
+# Agentrail Project Spec
 
 ## Summary
 
-DevPilot Verify is a verification-first AI coding agent for FastAPI and React/Next.js repositories. It helps diagnose issues, propose minimal patches, run verification, score risk, and produce evidence-backed reports.
+Agentrail is a verification-first AI coding agent for FastAPI and React/Next.js repositories. It helps diagnose issues, propose minimal patches, run verification, score risk, and produce evidence-backed reports.
 
 The product is not just a code generator. Its core value is disciplined engineering workflow: inspect first, reason from evidence, ask before changing code, verify changes, and communicate remaining risk.
 

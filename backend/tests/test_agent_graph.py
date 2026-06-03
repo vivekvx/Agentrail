@@ -64,7 +64,7 @@ def test_agent_graph_runs_planner_repo_scanner_and_code_search(tmp_path: Path) -
     assert "app/main.py:1-2" in result["root_cause"]
     assert "from fastapi import FastAPI" in result["root_cause"]
     report = result["final_report"]
-    assert report.startswith("# DevPilot Verify Report")
+    assert report.startswith("# Agentrail Report")
     assert "## Task\nFind FastAPI app setup" in report
     assert "## Detected Stack\n- FastAPI\n- requirements.txt\n- pytest" in report
     assert "## Investigation Plan" in report
@@ -154,7 +154,7 @@ def test_agent_graph_generates_auth_refresh_patch_preview(tmp_path: Path) -> Non
     assert "diff --git a/src/AuthContext.tsx b/src/AuthContext.tsx" in patch_diff
     assert "localStorage.getItem(\"token\")" in patch_diff
     assert "useState<string | null>(() => {" in patch_diff
-    assert result["final_report"].startswith("# DevPilot Verify Report")
+    assert result["final_report"].startswith("# Agentrail Report")
     assert "## Patch Diff" in result["final_report"]
     assert "## Approval\nPatch approved by user." in result["final_report"]
     assert "src/AuthContext.tsx" in result["final_report"]

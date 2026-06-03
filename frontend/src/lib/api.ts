@@ -6,7 +6,7 @@ import type {
   RunStartResponse,
 } from "@/lib/types";
 
-const API_PREFIX = "/api/devpilot";
+const API_PREFIX = "/api/agentrail";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_PREFIX}${path}`, {

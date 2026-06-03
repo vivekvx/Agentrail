@@ -7,7 +7,7 @@ def reporter_node(state: AgentRunState) -> dict[str, object]:
     return {
         "final_report": "\n\n".join(
             [
-                "# DevPilot Verify Report",
+                "# Agentrail Report",
                 _task_section(state),
                 _detected_stack_section(state),
                 _investigation_plan_section(state),

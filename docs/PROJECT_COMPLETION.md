@@ -1,8 +1,8 @@
-# DevPilot Verify Project Completion
+# Agentrail Project Completion
 
 ## Status
 
-DevPilot Verify is complete for the original portfolio goal after Phase 28.
+Agentrail is complete for the original portfolio goal after Phase 28.
 
 It is a local/portfolio MVP with production-minded safety design. It demonstrates a verification-first AI software engineering workflow without claiming production readiness.
 
@@ -82,4 +82,4 @@ repo path / repo URL / issue URL
 
 ## Resume Pitch
 
-Built DevPilot Verify, a verification-first AI software engineering agent using FastAPI, LangGraph, Next.js, structured LLM outputs, optional E2B sandboxing, GitHub issue import, deterministic evals, and copy-ready PR draft export. The project wraps AI-assisted bug fixing in evidence collection, human approval, safe verification, risk scoring, and review-ready reporting.
+Built Agentrail, a verification-first AI software engineering agent using FastAPI, LangGraph, Next.js, structured LLM outputs, optional E2B sandboxing, GitHub issue import, deterministic evals, and copy-ready PR draft export. The project wraps AI-assisted bug fixing in evidence collection, human approval, safe verification, risk scoring, and review-ready reporting.

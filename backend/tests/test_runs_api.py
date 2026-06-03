@@ -323,7 +323,7 @@ def test_start_run_with_repo_url_imports_repository_and_logs_events(
                 "search_results": [],
                 "evidence": [],
                 "root_cause": "No root cause identified yet for task 'Inspect startup flow'. No evidence was collected from code search results.",
-                "final_report": "# DevPilot Verify Report\n\n## Task\nInspect startup flow",
+                "final_report": "# Agentrail Report\n\n## Task\nInspect startup flow",
             }
 
     monkeypatch.setattr(routes_runs, "import_github_repository", fake_import)
@@ -606,7 +606,7 @@ def test_start_run_persists_fix_strategy_when_graph_returns_it(
                     "non_goals": ["Do not change logout behavior."],
                     "confidence": "medium",
                 },
-                "final_report": "# DevPilot Verify Report\n\n## Task\nDone",
+                "final_report": "# Agentrail Report\n\n## Task\nDone",
             }
 
     monkeypatch.setattr(routes_runs, "build_agent_graph", lambda: FinishedGraph())
