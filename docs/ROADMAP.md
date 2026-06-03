@@ -18,6 +18,7 @@
 - GitHub import
 - Evaluation suite
 - GitHub issue import
+- PR draft export
 
 ## Evaluation Suite
 
@@ -50,11 +51,9 @@ MVP boundaries:
 - No issue comments posted automatically.
 - No private repository or organization support until authentication and permissions are designed.
 
-## Remaining Planned Phases
+## PR Draft Export
 
-### Phase 28 — PR Draft Export
-
-Generate PR title, PR description, test evidence, risk summary, rollback plan, and review checklist.
+Implemented as copy-ready draft export. It generates PR title, PR description, test evidence, risk summary, rollback plan, and review checklist.
 
 MVP boundary:
 
@@ -62,7 +61,11 @@ MVP boundary:
 - Export draft text only.
 - Keep human review and repository write control outside DevPilot Verify.
 
-## Later
+## Final MVP Status
+
+DevPilot Verify is complete for the original portfolio goal after Phase 28.
+
+## Post-MVP Ideas
 
 - Durable LangGraph checkpointer
 - Real PR creation

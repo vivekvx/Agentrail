@@ -7,6 +7,7 @@ import { GitBranch, RefreshCcw } from "lucide-react";
 
 import {
   approveRun,
+  getPrDraft,
   getRun,
   getRunEvents,
   rejectRun,
@@ -14,12 +15,13 @@ import {
 } from "@/lib/api";
 import { buildWorkflowViews, getPreferredWorkflowNodeId } from "@/lib/agent-graph";
 import { saveRecentRunId } from "@/lib/recent-runs";
-import type { RunDetail, RunEvent } from "@/lib/types";
+import type { PRDraft, RunDetail, RunEvent } from "@/lib/types";
 import { AgentTimeline } from "@/components/agent-timeline";
 import { ApprovalCard } from "@/components/approval-card";
 import { ExecutionGraphPanel } from "@/components/execution-graph-panel";
 import { FinalReportCard } from "@/components/final-report-card";
 import { PatchPreviewCard } from "@/components/patch-preview-card";
+import { PRDraftCard } from "@/components/pr-draft-card";
 import {
   RiskPanel,
   TestResultPanel,
@@ -42,6 +44,7 @@ function RunDetailShellInner({ runId }: { runId: number }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string>("");
   const [selectionOrigin, setSelectionOrigin] = useState<"graph" | "timeline" | null>(null);
   const [selectionVersion, setSelectionVersion] = useState(0);
+  const [prDraft, setPrDraft] = useState<PRDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -110,6 +113,23 @@ function RunDetailShellInner({ runId }: { runId: number }) {
           actionError instanceof Error
             ? actionError.message
             : "Action failed.";
+        setError(message);
+      }
+    });
+  }
+
+  function generatePrDraft() {
+    startTransition(async () => {
+      try {
+        setError(null);
+        const draft = await getPrDraft(runId);
+        setPrDraft(draft);
+        await refresh();
+      } catch (draftError) {
+        const message =
+          draftError instanceof Error
+            ? draftError.message
+            : "Unable to generate PR draft.";
         setError(message);
       }
     });
@@ -228,6 +248,11 @@ function RunDetailShellInner({ runId }: { runId: number }) {
                 <VerificationPanel verificationResult={run.verification_result} />
                 <RiskPanel riskScore={run.risk_score} />
                 <FinalReportCard report={run.final_report} />
+                <PRDraftCard
+                  disabled={isPending}
+                  draft={prDraft}
+                  onGenerate={generatePrDraft}
+                />
               </div>
 
               <aside className="space-y-8 xl:sticky xl:top-6 xl:self-start">

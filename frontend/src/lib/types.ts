@@ -60,6 +60,22 @@ export interface RunEvent {
   created_at: string;
 }
 
+export interface PRDraft {
+  title: string;
+  summary: string;
+  linked_issue: string | null;
+  root_cause: string;
+  fix_strategy_summary: string | null;
+  files_changed: string[];
+  patch_summary: string;
+  test_evidence: string[];
+  verification_status: string;
+  risk_level: string;
+  rollback_plan: string;
+  manual_review_checklist: string[];
+  body_markdown: string;
+}
+
 export interface RunCreatePayload {
   repo_path?: string;
   repo_url?: string;

@@ -15,7 +15,8 @@ Script:
 5. Show the patch preview and approval card. Emphasize that DevPilot Verify does not apply the patch to the original repository.
 6. Approve the patch preview so the workflow can continue into verification.
 7. Show the test result, verifier output, and risk score.
-8. End on the final report and explain that it can be used as a PR description or engineering handoff.
+8. Show the final report.
+9. Open PR Draft, copy the title/body, and explain that this is safe because it does not write to GitHub.
 
 Closing line:
 
@@ -77,6 +78,11 @@ Closing line:
    - Verification
    - Risk score
    - Next step
+12. Show PR draft export:
+   - Generate PR Draft.
+   - Review title and Markdown body.
+   - Copy the draft into a manual PR description.
+   - Emphasize that DevPilot Verify does not open a PR or write to GitHub.
 
 ## Interview Talking Points
 
@@ -94,4 +100,5 @@ Closing line:
 - LLM features are optional and disabled by default for deterministic local behavior.
 - Private GitHub repository support is not included in this MVP.
 - GitHub issue import is read-only; DevPilot Verify does not comment, close issues, or open PRs.
+- PR Draft Export is copy-only; it does not push branches, commit code, or create GitHub PRs.
 - The project is portfolio-ready, but not claimed as production-ready.

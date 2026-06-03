@@ -14,6 +14,7 @@ from app.db.models import AgentRun, RunEvent
 from app.db.session import get_db
 from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead, RunStartResponse
 from app.services.github_issues import GitHubIssueFetchError, fetch_github_issue_context
+from app.services.pr_draft import PRDraft, generate_pr_draft
 from app.services.repo_importer import import_github_repository
 from app.services.run_events import list_run_events, log_run_event
 from app.tools.github_issue_url import validate_github_issue_url
@@ -263,6 +264,27 @@ def get_approval(run_id: int, db: Session = Depends(get_db)) -> ApprovalResponse
 def get_run_events(run_id: int, db: Session = Depends(get_db)) -> list[RunEventRead]:
     _get_run_or_404(run_id, db)
     return [_run_event_read(event) for event in list_run_events(db, run_id)]
+
+
+@router.get("/{run_id}/pr-draft", response_model=PRDraft)
+def get_pr_draft(run_id: int, db: Session = Depends(get_db)) -> PRDraft:
+    run = _get_run_or_404(run_id, db)
+    draft = generate_pr_draft(_pr_draft_state(run))
+    log_run_event(
+        db,
+        run.id,
+        "pr_draft_generated",
+        "PR draft generated",
+        payload={
+            "title": draft.title,
+            "risk_level": draft.risk_level,
+            "verification_status": draft.verification_status,
+            "has_issue": draft.linked_issue is not None,
+            "files_changed_count": len(draft.files_changed),
+        },
+    )
+    db.commit()
+    return draft
 
 
 @router.post("/{run_id}/approve", response_model=RunStartResponse)
@@ -524,6 +546,23 @@ def _dict_or_none(value: object) -> dict[str, object] | None:
 
 def _string_or_none(value: object) -> str | None:
     return value if isinstance(value, str) else None
+
+
+def _pr_draft_state(run: AgentRun) -> dict[str, object]:
+    approval_payload = _load_json_dict(run.approval_payload) or {}
+    return {
+        "user_task": run.user_task,
+        "expected_behavior": run.expected_behavior,
+        "issue_context": _load_json_dict(run.issue_context),
+        "root_cause": approval_payload.get("root_cause"),
+        "fix_strategy": _load_json_dict(run.fix_strategy),
+        "patch_diff": run.patch_diff,
+        "approval_status": run.approval_status,
+        "test_result": _load_json_dict(run.test_result),
+        "verification_result": _load_json_dict(run.verification_result),
+        "risk_score": _load_json_dict(run.risk_score),
+        "final_report": run.final_report,
+    }
 
 
 def _sanitize_error_message(message: str) -> str:

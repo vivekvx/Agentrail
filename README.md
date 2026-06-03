@@ -74,6 +74,7 @@ Current screenshots live in `frontend/artifacts/`. Before publishing, copy the l
 - Public GitHub issue URL import to prefill repository URL and task context.
 - Monochrome developer dashboard for run creation, timeline, graph, patch preview, verification, risk, and report views.
 - Final report suitable for PR descriptions, issue updates, or engineering handoff.
+- PR draft export with copy-ready title and Markdown body.
 - Deterministic project-specific eval suite for checking workflow behavior across controlled fixtures.
 
 ## Tech Stack
@@ -204,6 +205,7 @@ LLM features are optional. E2B is optional. The local deterministic workflow wor
 - `GET /api/runs/{run_id}/approval`
 - `POST /api/runs/{run_id}/approve`
 - `POST /api/runs/{run_id}/reject`
+- `GET /api/runs/{run_id}/pr-draft`
 - `GET /api/runs/{run_id}/events`
 
 ## Demo Flow
@@ -218,7 +220,8 @@ LLM features are optional. E2B is optional. The local deterministic workflow wor
 8. Run tests locally or via optional E2B sandboxing.
 9. Read the verification result.
 10. Read the risk score.
-11. Use the final report as a PR or issue handoff draft.
+11. Read the final report.
+12. Generate a PR draft and copy the title/body into a manual pull request.
 
 GitHub issue demo flow:
 
@@ -231,6 +234,7 @@ GitHub issue URL
 -> approval
 -> verification / risk
 -> report
+-> PR draft export
 ```
 
 Demo scripts: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
@@ -238,8 +242,8 @@ Demo scripts: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 ## Roadmap
 
 - Completed: Evaluation suite
-- Phase 27: GitHub issue import
-- Phase 28: PR draft export
+- Completed: GitHub issue import
+- Completed: PR draft export
 - Later: durable LangGraph checkpointing
 - Later: real PR creation
 - Later: deeper CI integration
@@ -256,3 +260,9 @@ Detailed roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 - Added deterministic fallback paths for local development and tests while keeping optional LLM and E2B integrations behind explicit configuration.
 
 More variants: [docs/RESUME_BULLETS.md](docs/RESUME_BULLETS.md).
+
+## PR Draft Export
+
+Completed or in-progress runs can generate a copy-ready pull request draft. The draft includes title, summary, linked issue, root cause, fix strategy, patch preview files, verification status, test evidence, risk level, rollback plan, and manual review checklist.
+
+This does not create a GitHub PR, push a branch, commit code, or modify the original repository.

@@ -1,4 +1,5 @@
 import type {
+  PRDraft,
   RunCreatePayload,
   RunDetail,
   RunEvent,
@@ -46,6 +47,10 @@ export function getRun(runId: number | string) {
 
 export function getRunEvents(runId: number | string) {
   return request<RunEvent[]>(`/runs/${runId}/events`);
+}
+
+export function getPrDraft(runId: number | string) {
+  return request<PRDraft>(`/runs/${runId}/pr-draft`);
 }
 
 export function startRun(runId: number | string) {
