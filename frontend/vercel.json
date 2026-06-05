@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "env": {
+    "AGENTRAIL_API_BASE_URL": "https://your-backend-url.railway.app/api"
+  }
+}

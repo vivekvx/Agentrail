@@ -114,6 +114,49 @@ See [docs/SAFETY_MODEL.md](docs/SAFETY_MODEL.md) for full details.
 
 ---
 
+## One-Command Dev
+
+```bash
+make install   # install all deps (first time only)
+make dev       # start backend (8000) + frontend (3000) together
+```
+
+Other targets:
+
+```bash
+make backend   # backend only
+make frontend  # frontend only
+make test      # run all tests + frontend build check
+```
+
+---
+
+## Deployment
+
+### Frontend → Vercel
+
+```bash
+cd frontend
+npx vercel --prod
+```
+
+Set environment variable in Vercel dashboard:
+
+```
+AGENTRAIL_API_BASE_URL = https://your-backend.railway.app/api
+```
+
+### Backend → Railway (free tier)
+
+1. Install Railway CLI: `npm install -g @railway/cli`
+2. `railway login`
+3. `cd backend && railway up`
+4. Set env vars in Railway dashboard (same as `backend/.env`)
+
+> **Note:** The backend requires persistent storage and long-running processes — it cannot run on Vercel. Use Railway, Render, or Fly.io instead.
+
+---
+
 ## Tests
 
 ```bash
