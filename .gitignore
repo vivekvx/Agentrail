@@ -5,3 +5,10 @@ __pycache__/
 *.py[cod]
 *.db
 uv.lock
+
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
