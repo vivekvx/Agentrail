@@ -121,12 +121,27 @@ def run_test_command_asdict(
     )
 
 
+PYTEST_PREFIXES = (
+    "pytest",
+    "python -m pytest",
+)
+
+
 def validate_test_command(command: str) -> None:
+    import re
     lowered = command.lower()
     if any(pattern in lowered for pattern in BLOCKED_PATTERNS):
         raise ValueError(f"Blocked unsafe test command: {command}")
-    if command not in ALLOWED_COMMANDS:
-        raise ValueError(f"Test command is not allowed: {command}")
+    # Exact match.
+    if command in ALLOWED_COMMANDS:
+        return
+    # Allow pytest / python -m pytest with safe path and flag args.
+    for prefix in PYTEST_PREFIXES:
+        if command.startswith(prefix):
+            tail = command[len(prefix):].strip()
+            if re.fullmatch(r"[\w\-\.\/\s]*", tail):
+                return
+    raise ValueError(f"Test command is not allowed: {command}")
 
 
 def normalize_test_command(command: str) -> str:
@@ -135,7 +150,10 @@ def normalize_test_command(command: str) -> str:
 
 def command_args(command: str) -> list[str]:
     validate_test_command(command)
-    return ALLOWED_COMMANDS[command]
+    if command in ALLOWED_COMMANDS:
+        return ALLOWED_COMMANDS[command]
+    # Pytest with extra path/flag args.
+    return shlex.split(command)
 
 
 def sandbox_result_asdict(result: SandboxTestResult) -> dict[str, object]:
