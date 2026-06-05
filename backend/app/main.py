@@ -12,7 +12,22 @@ from app.db.session import init_db
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
+    _warn_missing_llm_key()
     yield
+
+
+def _warn_missing_llm_key() -> None:
+    from app.core.config import get_settings
+    import logging
+
+    s = get_settings()
+    if (s.llm_root_cause_enabled or s.llm_fix_strategy_enabled) and not (
+        s.openai_api_key or ""
+    ).strip():
+        logging.warning(
+            "LLM nodes are enabled (LLM_ROOT_CAUSE_ENABLED / LLM_FIX_STRATEGY_ENABLED) "
+            "but OPENAI_API_KEY is not set. LLM analysis will be skipped silently."
+        )
 
 
 app = FastAPI(title="Agentrail API", version="0.1.0", lifespan=lifespan)

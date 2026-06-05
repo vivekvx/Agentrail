@@ -48,6 +48,10 @@ export function CreateRunForm() {
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (repoPath.trim() && repoUrl.trim()) {
+      setError("Use either a local repo path or a repo URL, not both.");
+      return;
+    }
     if (!repoPath.trim() && !repoUrl.trim() && !issueUrl.trim()) {
       setError("Repo path, repo URL, or GitHub issue URL is required.");
       return;
@@ -63,7 +67,7 @@ export function CreateRunForm() {
           repo_path: repoPath.trim() || undefined,
           repo_url: repoUrl.trim() || undefined,
           issue_url: issueUrl.trim() || undefined,
-          user_task: userTask.trim(),
+          user_task: userTask.trim() || undefined,
           expected_behavior: expectedBehavior || undefined,
           test_command: testCommand || undefined,
         });
@@ -103,7 +107,10 @@ export function CreateRunForm() {
           <Input
             placeholder="/path/to/your-repo"
             value={repoPath}
-            onChange={(event) => setRepoPath(event.target.value)}
+            onChange={(event) => {
+              setRepoPath(event.target.value);
+              if (event.target.value.trim()) setRepoUrl("");
+            }}
           />
         </Field>
 
@@ -114,7 +121,10 @@ export function CreateRunForm() {
           <Input
             placeholder="https://github.com/owner/repo"
             value={repoUrl}
-            onChange={(event) => setRepoUrl(event.target.value)}
+            onChange={(event) => {
+              setRepoUrl(event.target.value);
+              if (event.target.value.trim()) setRepoPath("");
+            }}
           />
         </Field>
 

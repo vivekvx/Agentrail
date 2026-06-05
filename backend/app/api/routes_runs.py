@@ -21,6 +21,7 @@ from app.tools.github_issue_url import validate_github_issue_url
 from app.tools.github_url import validate_github_repo_url
 from app.tools.path_policy import resolve_path
 from app.tools.path_policy import validate_repo_directory
+import concurrent.futures as _cf
 
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -184,15 +185,25 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
     try:
         repo_path = _effective_repo_path(run, db)
         graph = build_agent_graph()
-        result = graph.invoke(
-            {
-                "repo_path": str(repo_path),
-                "user_task": run.user_task,
-                "expected_behavior": run.expected_behavior,
-                "test_command": run.test_command,
-            },
-            config=_thread_config(run),
-        )
+        _timeout = get_settings().llm_timeout_seconds * 8 or 480
+        with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
+            _future = _pool.submit(
+                graph.invoke,
+                {
+                    "repo_path": str(repo_path),
+                    "user_task": run.user_task,
+                    "expected_behavior": run.expected_behavior,
+                    "test_command": run.test_command,
+                },
+                config=_thread_config(run),
+            )
+            try:
+                result = _future.result(timeout=_timeout)
+            except _cf.TimeoutError:
+                run.status = "failed"
+                run.error_message = "Agent run timed out. Try a smaller repository or simpler task."
+                db.commit()
+                return RunStartResponse(run_id=run.id, status="failed", current_node=None)
         _persist_graph_result(run, result)
         interrupt_payload = _extract_interrupt_payload(result)
         if interrupt_payload is not None:
