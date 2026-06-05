@@ -50,7 +50,11 @@ class FixStrategy(BaseModel):
 
 
 @lru_cache(maxsize=4)
-def _get_openai_client(api_key: str, timeout_seconds: int) -> object | None:
+def _get_openai_client(
+    api_key: str,
+    timeout_seconds: int,
+    base_url: str = "",
+) -> object | None:
     if not api_key:
         return None
 
@@ -59,7 +63,88 @@ def _get_openai_client(api_key: str, timeout_seconds: int) -> object | None:
     except ImportError:
         return None
 
-    return OpenAI(api_key=api_key, timeout=timeout_seconds)
+    kwargs: dict[str, object] = {"api_key": api_key, "timeout": timeout_seconds}
+    if base_url:
+        # OpenRouter / any OpenAI-compatible endpoint.
+        kwargs["base_url"] = base_url
+
+    return OpenAI(**kwargs)
+
+
+def _extract_json(content: str) -> str:
+    """Best-effort extract a JSON object from model output.
+
+    Free models often wrap JSON in markdown fences or add prose. Strip the
+    fences and slice the outermost object so validation can succeed.
+    """
+    text = content.strip()
+    if text.startswith("```"):
+        # Drop the opening fence line (``` or ```json) and the closing fence.
+        text = text.split("\n", 1)[-1] if "\n" in text else text
+        if text.endswith("```"):
+            text = text[: -3]
+        text = text.strip()
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return text[start : end + 1]
+    return text
+
+
+def _complete_with_fallback(
+    client: object,
+    model: str,
+    messages: list[dict[str, str]],
+    schema_name: str,
+    schema: dict[str, object],
+) -> str:
+    """Call the model, degrading response_format for wider model support.
+
+    Order: strict json_schema -> json_object -> no format. Each step is tried
+    on API error so models that reject a given format still produce output.
+    """
+    strict_format = {
+        "type": "json_schema",
+        "json_schema": {"name": schema_name, "strict": True, "schema": schema},
+    }
+    json_object_messages = messages + [
+        {
+            "role": "system",
+            "content": (
+                "Respond with a single valid JSON object only. No markdown, "
+                "no prose, no code fences. It must match this JSON schema: "
+                + json.dumps(schema, ensure_ascii=True)
+            ),
+        }
+    ]
+
+    attempts = (
+        (messages, strict_format),
+        (json_object_messages, {"type": "json_object"}),
+        (json_object_messages, None),
+    )
+
+    for attempt_messages, response_format in attempts:
+        try:
+            kwargs: dict[str, object] = {
+                "model": model,
+                "messages": attempt_messages,
+            }
+            if response_format is not None:
+                kwargs["response_format"] = response_format
+            response = client.chat.completions.create(**kwargs)
+            content = _response_text(response)
+            if content:
+                return content
+        except (AttributeError, TypeError):
+            # Stubbed/invalid client shape — no point retrying other formats.
+            raise
+        except Exception:
+            continue
+
+    return ""
 
 
 def analyze_root_cause(
@@ -77,6 +162,7 @@ def analyze_root_cause(
     client = _get_openai_client(
         (active_settings.openai_api_key or "").strip(),
         active_settings.llm_timeout_seconds,
+        (active_settings.openai_base_url or "").strip(),
     )
     if client is None:
         return None
@@ -88,26 +174,21 @@ def analyze_root_cause(
         expected_behavior=expected_behavior,
         repo_summary=repo_summary,
     )
-    response_format = {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "root_cause_analysis",
-            "strict": True,
-            "schema": RootCauseAnalysis.model_json_schema(),
-        },
-    }
+    model = (
+        active_settings.openai_model or DEFAULT_OPENAI_MODEL
+    ).strip() or DEFAULT_OPENAI_MODEL
 
     try:
-        response = client.chat.completions.create(
-            model=(active_settings.openai_model or DEFAULT_OPENAI_MODEL).strip()
-            or DEFAULT_OPENAI_MODEL,
-            messages=messages,
-            response_format=response_format,
+        content = _complete_with_fallback(
+            client,
+            model,
+            messages,
+            "root_cause_analysis",
+            RootCauseAnalysis.model_json_schema(),
         )
-        content = _response_text(response)
         if not content:
             return None
-        parsed = RootCauseAnalysis.model_validate_json(content)
+        parsed = RootCauseAnalysis.model_validate_json(_extract_json(content))
     except (AttributeError, TypeError, ValidationError, json.JSONDecodeError, ValueError):
         return None
     except Exception:
@@ -133,6 +214,7 @@ def propose_fix_strategy(
     client = _get_openai_client(
         (active_settings.openai_api_key or "").strip(),
         active_settings.llm_timeout_seconds,
+        (active_settings.openai_base_url or "").strip(),
     )
     if client is None:
         return None
@@ -149,26 +231,21 @@ def propose_fix_strategy(
         root_cause=root_cause,
         root_cause_analysis=root_cause_analysis,
     )
-    response_format = {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "fix_strategy",
-            "strict": True,
-            "schema": FixStrategy.model_json_schema(),
-        },
-    }
+    model = (
+        active_settings.openai_model or DEFAULT_OPENAI_MODEL
+    ).strip() or DEFAULT_OPENAI_MODEL
 
     try:
-        response = client.chat.completions.create(
-            model=(active_settings.openai_model or DEFAULT_OPENAI_MODEL).strip()
-            or DEFAULT_OPENAI_MODEL,
-            messages=messages,
-            response_format=response_format,
+        content = _complete_with_fallback(
+            client,
+            model,
+            messages,
+            "fix_strategy",
+            FixStrategy.model_json_schema(),
         )
-        content = _response_text(response)
         if not content:
             return None
-        parsed = FixStrategy.model_validate_json(content)
+        parsed = FixStrategy.model_validate_json(_extract_json(content))
     except (AttributeError, TypeError, ValidationError, json.JSONDecodeError, ValueError):
         return None
     except Exception:

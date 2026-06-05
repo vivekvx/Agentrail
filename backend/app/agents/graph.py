@@ -21,7 +21,16 @@ from app.agents.state import AgentRunState
 DEFAULT_CHECKPOINTER = InMemorySaver()
 
 
+_COMPILED_DEFAULT_GRAPH = None
+
+
 def build_agent_graph(checkpointer=DEFAULT_CHECKPOINTER):
+    # Reuse the compiled graph for the default checkpointer to avoid
+    # rebuilding + recompiling all 12 nodes on every run/approve call.
+    global _COMPILED_DEFAULT_GRAPH
+    if checkpointer is DEFAULT_CHECKPOINTER and _COMPILED_DEFAULT_GRAPH is not None:
+        return _COMPILED_DEFAULT_GRAPH
+
     graph = StateGraph(AgentRunState)
     graph.add_node("planner", planner_node)
     graph.add_node("repo_scanner", repo_scanner_node)
@@ -48,4 +57,7 @@ def build_agent_graph(checkpointer=DEFAULT_CHECKPOINTER):
     graph.add_edge("verifier", "risk_scorer")
     graph.add_edge("risk_scorer", "reporter")
     graph.add_edge("reporter", END)
-    return graph.compile(checkpointer=checkpointer)
+    compiled = graph.compile(checkpointer=checkpointer)
+    if checkpointer is DEFAULT_CHECKPOINTER:
+        _COMPILED_DEFAULT_GRAPH = compiled
+    return compiled

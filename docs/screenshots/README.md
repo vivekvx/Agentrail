@@ -1,24 +1,18 @@
-# Screenshot Guide
+# Screenshots
 
-The main README should only show three primary screenshots:
+Three curated 1440x900 (16:9) README screenshots. Each explains one idea.
 
-1. `hero-dashboard.png` — main product dashboard or run detail overview.
-2. `agent-graph.png` — visual agent execution graph.
-3. `verification-report.png` — verification, risk, patch approval, or report output.
+| File | Aspect | Purpose |
+|---|---|---|
+| `hero-dashboard.png` | 1440x900 | Command center homepage. Shows run creation form and workflow overview. |
+| `agent-graph.png` | 1440x900 | 8-stage agent workflow pipeline. Shows each stage in the execution sequence. |
+| `verification-risk.png` | 1440x900 | Safety model page. Shows 6 hard enforcement boundaries. |
 
-Optional screenshots can be stored here for demos, but should not all be embedded in the README.
+## Rules
 
-Allowed optional screenshots:
-
-- `patch-approval.png` — focused patch preview and approval controls.
-- `timeline.png` — event timeline view.
-- `pr-draft.png` — PR draft export view.
-
-When replacing screenshots:
-
-- Use screenshots captured from the running app.
-- Prefer a consistent desktop viewport such as 1440x900 or 1600x1000.
-- Avoid empty states, debug panels, secrets, tokens, local private paths, and duplicated views.
-- Keep the README grid to the three primary screenshots above.
-
-Generated artifacts live in `frontend/artifacts/`. Do not add fake screenshots.
+- Max 3 curated screenshots in README.
+- All screenshots 1440x900 (16:9) or 1600x1000 (16:10).
+- No full-page tall screenshots.
+- No huge empty areas.
+- Each screenshot explains exactly one idea.
+- Recapture after significant UI changes.

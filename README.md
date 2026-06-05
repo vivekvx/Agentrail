@@ -12,9 +12,9 @@ Agentrail analyzes repositories, finds code evidence, explains root cause, propo
 It is a local/portfolio MVP with production-minded safety design: useful as a developer-tool showcase, honest about its boundaries, and intentionally not a fully autonomous production coding system.
 
 <p align="center">
-  <img src="docs/screenshots/hero-dashboard.png" width="32%" alt="Agentrail dashboard" />
-  <img src="docs/screenshots/agent-graph.png" width="32%" alt="Agentrail execution graph" />
-  <img src="docs/screenshots/verification-report.png" width="32%" alt="Agentrail verification report" />
+  <img src="docs/screenshots/hero-dashboard.png" width="32%" alt="Agentrail command center - homepage with run creation" />
+  <img src="docs/screenshots/agent-graph.png" width="32%" alt="8-stage agent workflow pipeline" />
+  <img src="docs/screenshots/verification-risk.png" width="32%" alt="Safety model with 6 hard enforcement boundaries" />
 </p>
 
 See the [demo script](docs/DEMO_SCRIPT.md) for the full walkthrough.

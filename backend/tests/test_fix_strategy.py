@@ -195,7 +195,7 @@ def test_target_files_not_in_evidence_are_filtered(
     monkeypatch.setattr(
         llm_provider,
         "_get_openai_client",
-        lambda api_key, timeout_seconds: FakeClient(response_text),
+        lambda api_key, timeout_seconds, base_url="": FakeClient(response_text),
     )
 
     result = llm_provider.propose_fix_strategy(
@@ -315,7 +315,7 @@ def test_no_secret_like_snippets_are_sent_to_fix_strategy_prompt(
     monkeypatch.setattr(
         llm_provider,
         "_get_openai_client",
-        lambda api_key, timeout_seconds: FakeClient(response_text, capture),
+        lambda api_key, timeout_seconds, base_url="": FakeClient(response_text, capture),
     )
 
     llm_provider.propose_fix_strategy(

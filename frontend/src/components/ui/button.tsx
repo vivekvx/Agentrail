@@ -4,18 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium tracking-tight transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 rounded-md border text-sm font-medium tracking-tight transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
         default:
           "border-[#d4d4d8] bg-white text-black hover:bg-[#ebebeb]",
+        accent:
+          "border-transparent bg-[var(--accent)] text-black hover:bg-emerald-400 font-semibold",
         secondary:
-          "border-[#2c2c2c] bg-[#111111] text-white hover:bg-[#171717]",
+          "border-[#282828] bg-[#111111] text-zinc-200 hover:bg-[#181818] hover:text-white hover:border-[#333]",
         ghost:
-          "border-transparent bg-transparent text-zinc-300 hover:border-[#232323] hover:bg-[#111111] hover:text-white",
+          "border-transparent bg-transparent text-zinc-400 hover:border-[var(--border)] hover:bg-[#111111] hover:text-zinc-100",
         danger:
-          "border-[#3a3a3a] bg-[#151515] text-white hover:bg-[#1d1d1d]",
+          "border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)] hover:bg-[rgba(248,113,113,0.12)]",
       },
       size: {
         default: "h-10 px-4 py-2",

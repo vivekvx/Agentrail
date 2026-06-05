@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str = "sqlite:///./agentrail.db"
     openai_api_key: str | None = None
+    openai_base_url: str | None = None
     openai_model: str = "gpt-4.1-mini"
     llm_root_cause_enabled: bool = False
     llm_fix_strategy_enabled: bool = False

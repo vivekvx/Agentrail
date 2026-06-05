@@ -11,5 +11,9 @@ const variantByStatus: Record<RunStatus, "neutral" | "success" | "warning" | "da
 };
 
 export function StatusBadge({ status }: { status: RunStatus }) {
-  return <Badge variant={variantByStatus[status]}>{status.replace("_", " ")}</Badge>;
+  return (
+    <Badge dot variant={variantByStatus[status]}>
+      {status.replace(/_/g, " ")}
+    </Badge>
+  );
 }

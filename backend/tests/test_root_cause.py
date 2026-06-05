@@ -224,7 +224,7 @@ def test_service_filters_unknown_evidence_refs(
     monkeypatch.setattr(
         llm_provider,
         "_get_openai_client",
-        lambda api_key, timeout_seconds: FakeClient(response_text),
+        lambda api_key, timeout_seconds, base_url="": FakeClient(response_text),
     )
 
     result = llm_provider.analyze_root_cause(
@@ -249,7 +249,7 @@ def test_service_invalid_output_returns_none(
     monkeypatch.setattr(
         llm_provider,
         "_get_openai_client",
-        lambda api_key, timeout_seconds: FakeClient("{\"summary\": \"missing fields\"}"),
+        lambda api_key, timeout_seconds, base_url="": FakeClient("{\"summary\": \"missing fields\"}"),
     )
 
     result = llm_provider.analyze_root_cause(
@@ -285,7 +285,7 @@ def test_service_excludes_secret_like_snippets_from_prompt(
     monkeypatch.setattr(
         llm_provider,
         "_get_openai_client",
-        lambda api_key, timeout_seconds: FakeClient(response_text, capture),
+        lambda api_key, timeout_seconds, base_url="": FakeClient(response_text, capture),
     )
 
     llm_provider.analyze_root_cause(

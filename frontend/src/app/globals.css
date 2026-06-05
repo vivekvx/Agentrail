@@ -1,16 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ffffff;
-  --surface: #111111;
-  --border: #232323;
-  --muted: #a1a1aa;
+  --background: #080808;
+  --foreground: #f4f4f5;
+  --surface: #0f0f0f;
+  --border: #1f1f1f;
+  --muted: #71717a;
   --muted-strong: #d4d4d8;
-  --panel: #0f0f0f;
-  --success: #e4e4e7;
-  --warning: #d4d4d8;
-  --danger: #fafafa;
+  --panel: #0c0c0c;
+
+  /* Accent - emerald (verified / safe / approved) */
+  --accent: #10b981;
+  --accent-dim: rgba(16, 185, 129, 0.10);
+  --accent-border: rgba(16, 185, 129, 0.24);
+
+  /* Semantic states */
+  --success-text: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.07);
+  --success-border: rgba(52, 211, 153, 0.20);
+
+  --warning-text: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.07);
+  --warning-border: rgba(251, 191, 36, 0.20);
+
+  --danger-text: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.07);
+  --danger-border: rgba(248, 113, 113, 0.20);
+
+  --neutral-text: #a1a1aa;
+  --neutral-bg: #111111;
+  --neutral-border: #2a2a2a;
 }
 
 @theme inline {
@@ -21,6 +40,7 @@
   --color-muted: var(--muted);
   --color-muted-strong: var(--muted-strong);
   --color-panel: var(--panel);
+  --color-accent: var(--accent);
   --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 }
@@ -41,12 +61,13 @@ body {
   letter-spacing: 0;
 }
 
+/* ── React Flow ─────────────────────────────── */
 .react-flow {
-  background: #111111;
+  background: #0c0c0c;
 }
 
 .react-flow__renderer {
-  background: #111111;
+  background: #0c0c0c;
 }
 
 .react-flow__node {
@@ -72,28 +93,31 @@ body {
   display: none;
 }
 
+/* ── Transitions ────────────────────────────── */
 a,
 button,
 input,
 textarea {
   transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease;
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 ::selection {
-  background: #262626;
-  color: #ffffff;
+  background: #1a3a2e;
+  color: #a7f3d0;
 }
 
+/* ── Scrollbar ──────────────────────────────── */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 6px;
+  width: 6px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
@@ -105,27 +129,35 @@ textarea {
   border-radius: 999px;
 }
 
+/* ── Type utilities ─────────────────────────── */
 .panel-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #71717a;
+  color: var(--muted);
 }
 
 .panel-value {
-  color: #fafafa;
+  color: var(--foreground);
 }
 
 .chrome-divider {
   border-top: 1px solid var(--border);
 }
 
+/* ── Active nav state ───────────────────────── */
+.nav-active {
+  color: #f4f4f5;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+/* ── Markdown report ────────────────────────── */
 .markdown-report h1,
 .markdown-report h2,
 .markdown-report h3 {
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 
 .markdown-report h1 {
@@ -149,18 +181,19 @@ textarea {
 
 .markdown-report code {
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .markdown-report pre {
   overflow-x: auto;
   border: 1px solid var(--border);
-  background: #0d0d0d;
+  background: #0a0a0a;
   padding: 1rem;
+  border-radius: 4px;
 }
 
 .markdown-report blockquote {
-  border-left: 2px solid var(--border);
+  border-left: 2px solid rgba(16, 185, 129, 0.24);
   padding-left: 1rem;
   color: var(--muted);
 }
