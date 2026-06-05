@@ -129,6 +129,10 @@ PYTEST_PREFIXES = (
 
 def validate_test_command(command: str) -> None:
     import re
+    # Strip accidental surrounding quotes.
+    cmd = command.strip()
+    if len(cmd) >= 2 and cmd[0] == cmd[-1] and cmd[0] in ("'", '"'):
+        command = cmd[1:-1].strip()
     lowered = command.lower()
     if any(pattern in lowered for pattern in BLOCKED_PATTERNS):
         raise ValueError(f"Blocked unsafe test command: {command}")
@@ -145,7 +149,11 @@ def validate_test_command(command: str) -> None:
 
 
 def normalize_test_command(command: str) -> str:
-    return " ".join(shlex.split(command))
+    cmd = command.strip()
+    # Strip surrounding quotes users accidentally type in the form.
+    if len(cmd) >= 2 and cmd[0] == cmd[-1] and cmd[0] in ("'", '"'):
+        cmd = cmd[1:-1].strip()
+    return " ".join(shlex.split(cmd))
 
 
 def command_args(command: str) -> list[str]:
