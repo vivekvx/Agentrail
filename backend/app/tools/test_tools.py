@@ -77,7 +77,7 @@ def run_test_command(
     started = time.monotonic()
     try:
         completed = subprocess.run(
-            ALLOWED_COMMANDS[command],
+            command_args(command),
             cwd=cwd,
             capture_output=True,
             text=True,
