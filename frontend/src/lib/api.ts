@@ -41,6 +41,10 @@ export function createRun(payload: RunCreatePayload) {
   });
 }
 
+export function getRuns(limit = 50) {
+  return request<RunDetail[]>(`/runs?limit=${limit}`);
+}
+
 export function getRun(runId: number | string) {
   return request<RunDetail>(`/runs/${runId}`);
 }

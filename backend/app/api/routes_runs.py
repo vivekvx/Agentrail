@@ -29,6 +29,20 @@ ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:[^/\s:]+/)*[^/\s:]+")
 TOKEN_PATTERN = re.compile(r"\b(?:ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b")
 
 
+@router.get("", response_model=list[RunRead])
+def list_runs(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+) -> list[RunRead]:
+    runs = (
+        db.query(AgentRun)
+        .order_by(AgentRun.created_at.desc())
+        .limit(max(1, min(limit, 200)))
+        .all()
+    )
+    return [_run_read(run) for run in runs]
+
+
 @router.post("", response_model=RunRead, status_code=status.HTTP_201_CREATED)
 def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
     repo_path: str | None = None

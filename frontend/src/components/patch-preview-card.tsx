@@ -43,9 +43,27 @@ export function PatchPreviewCard({ patchDiff }: { patchDiff: string | null }) {
       </div>
 
       <div className="overflow-hidden border border-border bg-[#0d0d0d]">
-        <pre className="scrollbar-thin max-h-[34rem] overflow-auto p-5 font-mono text-xs leading-6 text-zinc-300">
-          <code>{patchDiff ?? "No patch preview available."}</code>
-        </pre>
+        {patchDiff ? (
+          <pre className="scrollbar-thin max-h-[34rem] overflow-auto p-5 font-mono text-xs leading-6">
+            {patchDiff.split("\n").map((line, i) => {
+              let cls = "text-zinc-400";
+              if (line.startsWith("+++") || line.startsWith("---")) cls = "text-zinc-500";
+              else if (line.startsWith("+")) cls = "text-emerald-400";
+              else if (line.startsWith("-")) cls = "text-red-400";
+              else if (line.startsWith("@@")) cls = "text-sky-400";
+              else if (line.startsWith("diff ") || line.startsWith("index ")) cls = "text-zinc-500";
+              return (
+                <span key={i} className={`block ${cls}`}>
+                  {line || " "}
+                </span>
+              );
+            })}
+          </pre>
+        ) : (
+          <pre className="scrollbar-thin max-h-[34rem] overflow-auto p-5 font-mono text-xs leading-6 text-zinc-600">
+            No patch preview available.
+          </pre>
+        )}
       </div>
     </section>
   );
