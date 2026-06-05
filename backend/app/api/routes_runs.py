@@ -322,6 +322,90 @@ def reject_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
     return _resume_run(run_id, "reject", "rejected", db)
 
 
+@router.post("/{run_id}/apply-patch", response_model=dict)
+def apply_patch(run_id: int, db: Session = Depends(get_db)) -> dict:
+    """Apply the stored patch diff to the local repository using the patch command."""
+    import subprocess
+    import tempfile
+
+    run = _get_run_or_404(run_id, db)
+
+    if not run.patch_diff:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No patch diff available for this run.",
+        )
+    if not run.repo_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Patch apply only works for local repository paths.",
+        )
+    if run.approval_status != "approved":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Patch can only be applied after the run has been approved.",
+        )
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".patch", delete=False, encoding="utf-8"
+        ) as tmp:
+            tmp.write(run.patch_diff)
+            tmp_path = tmp.name
+
+        result = subprocess.run(
+            ["patch", "-p1", "--dry-run", "-i", tmp_path],
+            cwd=run.repo_path,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            return {
+                "applied": False,
+                "dry_run": True,
+                "error": result.stderr or result.stdout or "Patch does not apply cleanly.",
+            }
+
+        apply_result = subprocess.run(
+            ["patch", "-p1", "-i", tmp_path],
+            cwd=run.repo_path,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        log_run_event(
+            db,
+            run.id,
+            "patch_applied",
+            "Patch applied to repository",
+            payload={"returncode": apply_result.returncode, "output": apply_result.stdout[:500]},
+        )
+        db.commit()
+
+        return {
+            "applied": apply_result.returncode == 0,
+            "dry_run": False,
+            "output": apply_result.stdout or apply_result.stderr or "Patch applied.",
+        }
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="`patch` command not found. Install it via your system package manager.",
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Patch apply timed out.",
+        )
+    finally:
+        import os
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
+
 def _resume_run(
     run_id: int,
     decision: str,

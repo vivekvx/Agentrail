@@ -244,7 +244,12 @@ function RunDetailShellInner({ runId }: { runId: number }) {
 
             <section className="grid gap-10 pt-8 xl:grid-cols-[minmax(0,1fr)_340px]">
               <div className="min-w-0 space-y-8">
-                <PatchPreviewCard patchDiff={run.patch_diff} />
+                <PatchPreviewCard
+                  patchDiff={run.patch_diff}
+                  runId={run.id}
+                  approvalStatus={run.approval_status}
+                  repoPath={run.repo_path}
+                />
                 <VerificationPanel verificationResult={run.verification_result} />
                 <RiskPanel riskScore={run.risk_score} />
                 <FinalReportCard report={run.final_report} />

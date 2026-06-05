@@ -74,3 +74,10 @@ export function rejectRun(runId: number | string) {
     method: "POST",
   });
 }
+
+export function applyPatch(runId: number) {
+  return request<{ applied: boolean; output?: string; error?: string }>(
+    `/runs/${runId}/apply-patch`,
+    { method: "POST" },
+  );
+}

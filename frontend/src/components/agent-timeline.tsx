@@ -175,7 +175,32 @@ export function AgentTimeline({
                     </p>
                   ) : null}
 
-                  {entries.length > 0 ? (
+                  {event.event_type === "evidence_read" &&
+                  Array.isArray(event.payload?.evidence) &&
+                  (event.payload.evidence as Array<{file_path?: string; snippet?: string; reason?: string}>).length > 0 ? (
+                    <div className="mt-4 space-y-2">
+                      {(event.payload.evidence as Array<{file_path?: string; snippet?: string; reason?: string}>)
+                        .slice(0, 4)
+                        .map((item, i) => (
+                          <div
+                            key={i}
+                            className="border border-[var(--border)] bg-[#0a0a0a] rounded-sm p-3"
+                          >
+                            <div className="font-mono text-[10px] text-[var(--accent)] mb-1 truncate">
+                              {item.file_path ?? "unknown"}
+                            </div>
+                            {item.reason ? (
+                              <div className="text-[11px] text-zinc-500 mb-1 truncate">{item.reason}</div>
+                            ) : null}
+                            {item.snippet ? (
+                              <pre className="font-mono text-[10px] text-zinc-400 leading-5 overflow-x-auto max-h-20 scrollbar-thin whitespace-pre-wrap break-all">
+                                {item.snippet.slice(0, 300)}
+                              </pre>
+                            ) : null}
+                          </div>
+                        ))}
+                    </div>
+                  ) : entries.length > 0 ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {entries.map(([key, value]) => (
                         <span

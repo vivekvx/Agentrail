@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { applyPatch } from "@/lib/api";
+
 function diffStats(patchDiff: string | null) {
   if (!patchDiff) {
     return { files: 0, additions: 0, deletions: 0 };
@@ -18,8 +21,34 @@ function diffStats(patchDiff: string | null) {
   );
 }
 
-export function PatchPreviewCard({ patchDiff }: { patchDiff: string | null }) {
+export function PatchPreviewCard({
+  patchDiff,
+  runId,
+  approvalStatus,
+  repoPath,
+}: {
+  patchDiff: string | null;
+  runId?: number;
+  approvalStatus?: string | null;
+  repoPath?: string | null;
+}) {
   const stats = diffStats(patchDiff);
+  const [applying, setApplying] = useState(false);
+  const [applyResult, setApplyResult] = useState<{ applied: boolean; output?: string; error?: string } | null>(null);
+
+  async function handleApply() {
+    if (!runId) return;
+    setApplying(true);
+    setApplyResult(null);
+    try {
+      const result = await applyPatch(runId) as { applied: boolean; output?: string; error?: string };
+      setApplyResult(result);
+    } catch (e) {
+      setApplyResult({ applied: false, error: e instanceof Error ? e.message : "Apply failed." });
+    } finally {
+      setApplying(false);
+    }
+  }
 
   return (
     <section className="border-t border-border pt-6">
@@ -35,10 +64,21 @@ export function PatchPreviewCard({ patchDiff }: { patchDiff: string | null }) {
             Unified diff preview only. No patch application happens in this UI.
           </p>
         </div>
-        <div className="flex flex-wrap gap-4 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
-          <span>{stats.files} file</span>
-          <span>+{stats.additions}</span>
-          <span>-{stats.deletions}</span>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap gap-4 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+            <span>{stats.files} file</span>
+            <span className="text-emerald-500">+{stats.additions}</span>
+            <span className="text-red-500">-{stats.deletions}</span>
+          </div>
+          {repoPath && approvalStatus === "approved" && patchDiff ? (
+            <button
+              onClick={handleApply}
+              disabled={applying}
+              className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-[var(--accent-border)] bg-[var(--accent-dim)] px-3 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[var(--accent)] hover:bg-[rgba(16,185,129,0.15)] disabled:opacity-50 transition"
+            >
+              {applying ? "Applying..." : "Apply patch"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -65,6 +105,12 @@ export function PatchPreviewCard({ patchDiff }: { patchDiff: string | null }) {
           </pre>
         )}
       </div>
+      {applyResult ? (
+        <div className={`mt-3 rounded-sm border px-4 py-3 font-mono text-xs ${applyResult.applied ? "border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]" : "border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)]"}`}>
+          {applyResult.applied ? "Patch applied successfully." : (applyResult.error ?? "Patch apply failed.")}
+          {applyResult.output ? <pre className="mt-2 whitespace-pre-wrap opacity-70">{applyResult.output}</pre> : null}
+        </div>
+      ) : null}
     </section>
   );
 }
