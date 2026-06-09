@@ -81,3 +81,35 @@ export function applyPatch(runId: number) {
     { method: "POST" },
   );
 }
+
+export async function register(
+  email: string,
+  password: string,
+): Promise<{ access_token: string }> {
+  const res = await fetch(`${API_PREFIX}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { detail?: string };
+    throw new Error(err.detail ?? "Registration failed");
+  }
+  return res.json() as Promise<{ access_token: string }>;
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<{ access_token: string }> {
+  const res = await fetch(`${API_PREFIX}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { detail?: string };
+    throw new Error(err.detail ?? "Login failed");
+  }
+  return res.json() as Promise<{ access_token: string }>;
+}

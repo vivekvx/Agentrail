@@ -1,8 +1,10 @@
 "use client";
 
-import { GitBranch } from "lucide-react";
+import { GitBranch, LogOut, User } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { clearToken, isAuthenticated } from "@/lib/auth";
 
 const navItems = [
   { href: "/", label: "Console" },
@@ -30,6 +32,23 @@ function NavLink({ href, label }: { href: string; label: string }) {
 }
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [authed, setAuthed] = useState(false);
+
+  useEffect(() => {
+    const authenticated = isAuthenticated();
+    setAuthed(authenticated);
+    if (!authenticated) {
+      router.replace("/login");
+    }
+  }, [router]);
+
+  function handleLogout() {
+    clearToken();
+    setAuthed(false);
+    router.replace("/login");
+  }
+
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 py-5 sm:px-8">
@@ -50,14 +69,34 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
               ))}
             </nav>
 
-            <Link
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-sm border border-[var(--border)] px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 hover:border-zinc-600 hover:text-zinc-200 transition"
-              href="https://github.com/vivekvx/Agentrail"
-              target="_blank"
-            >
-              <GitBranch className="size-3.5" />
-              GitHub
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-sm border border-[var(--border)] px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 hover:border-zinc-600 hover:text-zinc-200 transition"
+                href="https://github.com/vivekvx/Agentrail"
+                target="_blank"
+              >
+                <GitBranch className="size-3.5" />
+                GitHub
+              </Link>
+
+              {authed ? (
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-sm border border-[var(--border)] px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 hover:border-zinc-600 hover:text-zinc-200 transition"
+                  title="Sign out"
+                >
+                  <User className="size-3.5" />
+                  <LogOut className="size-3.5" />
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-sm border border-[var(--border)] px-3 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 hover:border-zinc-600 hover:text-zinc-200 transition"
+                >
+                  Sign in
+                </Link>
+              )}
+            </div>
           </div>
         </header>
 
