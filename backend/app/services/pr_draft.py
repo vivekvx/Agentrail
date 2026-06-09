@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from typing import Any
 
+import httpx
 from pydantic import BaseModel
 
 
@@ -65,6 +67,65 @@ def generate_pr_draft(run_state_or_model: object) -> PRDraft:
         manual_review_checklist=checklist,
         body_markdown=body_markdown,
     )
+
+
+def create_github_pr(
+    repo_path: str,
+    draft: "PRDraft",
+    token: str,
+    base_branch: str = "main",
+) -> str:
+    """Create a GitHub PR from a PRDraft. Returns the PR URL."""
+    # Get remote origin URL
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            raise ValueError("No git remote 'origin' found")
+        remote_url = result.stdout.strip()
+    except FileNotFoundError:
+        raise ValueError("git not found")
+
+    # Parse owner/repo from remote URL
+    # Handles: https://github.com/owner/repo.git and git@github.com:owner/repo.git
+    match = re.search(r"github\.com[:/]([^/]+)/([^/.]+)", remote_url)
+    if not match:
+        raise ValueError(f"Cannot parse GitHub owner/repo from remote: {remote_url}")
+    owner, repo = match.group(1), match.group(2)
+
+    # Get current branch
+    branch_result = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    head_branch = branch_result.stdout.strip() or "main"
+
+    # Create PR via GitHub API
+    response = httpx.post(
+        f"https://api.github.com/repos/{owner}/{repo}/pulls",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+        json={
+            "title": draft.title,
+            "body": draft.body_markdown,
+            "head": head_branch,
+            "base": base_branch,
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()["html_url"]
 
 
 def _state_dict(value: object) -> dict[str, Any]:

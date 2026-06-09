@@ -75,6 +75,13 @@ export function rejectRun(runId: number | string) {
   });
 }
 
+export function createPR(runId: number, baseBranch = "main"): Promise<{ pr_url: string }> {
+  return request<{ pr_url: string }>(`/runs/${runId}/create-pr`, {
+    method: "POST",
+    body: JSON.stringify({ base_branch: baseBranch }),
+  });
+}
+
 export function applyPatch(runId: number) {
   return request<{ applied: boolean; output?: string; error?: string }>(
     `/runs/${runId}/apply-patch`,

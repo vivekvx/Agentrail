@@ -280,6 +280,7 @@ function RunDetailShellInner({ runId }: { runId: number }) {
                   disabled={isPending}
                   draft={prDraft}
                   onGenerate={generatePrDraft}
+                  runId={run.id}
                 />
               </div>
 

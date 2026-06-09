@@ -13,9 +13,11 @@ from app.agents.graph import build_agent_graph
 from app.core.config import get_settings
 from app.db.models import AgentRun, RunEvent
 from app.db.session import get_db
+from pydantic import BaseModel as _BaseModel
+
 from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead, RunStartResponse
 from app.services.github_issues import GitHubIssueFetchError, fetch_github_issue_context
-from app.services.pr_draft import PRDraft, generate_pr_draft
+from app.services.pr_draft import PRDraft, create_github_pr, generate_pr_draft
 from app.services.repo_importer import import_github_repository
 from app.services.run_events import list_run_events, log_run_event, stream_run_events
 from app.tools.github_issue_url import validate_github_issue_url
@@ -333,6 +335,55 @@ def get_pr_draft(run_id: int, db: Session = Depends(get_db)) -> PRDraft:
     )
     db.commit()
     return draft
+
+
+class _CreatePRRequest(_BaseModel):
+    base_branch: str = "main"
+
+
+class _CreatePRResponse(_BaseModel):
+    pr_url: str
+
+
+@router.post("/{run_id}/create-pr", response_model=_CreatePRResponse)
+def create_pr_for_run(
+    run_id: int,
+    body: _CreatePRRequest,
+    db: Session = Depends(get_db),
+) -> _CreatePRResponse:
+    settings = get_settings()
+    if not settings.github_token:
+        raise HTTPException(status_code=400, detail="GITHUB_TOKEN not configured")
+
+    run = _get_run_or_404(run_id, db)
+
+    if not run.repo_path:
+        raise HTTPException(status_code=400, detail="Run has no local repo path; cannot create PR")
+
+    draft = generate_pr_draft(_pr_draft_state(run))
+
+    try:
+        pr_url = create_github_pr(
+            repo_path=run.repo_path,
+            draft=draft,
+            token=settings.github_token,
+            base_branch=body.base_branch,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"GitHub API error: {e}")
+
+    log_run_event(
+        db,
+        run.id,
+        "pr_created",
+        "GitHub PR created",
+        payload={"pr_url": pr_url, "base_branch": body.base_branch},
+    )
+    db.commit()
+
+    return _CreatePRResponse(pr_url=pr_url)
 
 
 @router.post("/{run_id}/approve", response_model=RunStartResponse)
