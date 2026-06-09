@@ -84,3 +84,18 @@ export interface RunCreatePayload {
   expected_behavior?: string;
   test_command?: string;
 }
+
+export interface EvalScenario {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface EvalResult {
+  id: number;
+  scenario_name: string;
+  score: number;
+  passed: boolean;
+  details_json: string | null;
+  run_at: string;
+}

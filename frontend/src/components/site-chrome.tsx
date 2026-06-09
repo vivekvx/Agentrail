@@ -11,6 +11,7 @@ const navItems = [
   { href: "/runs", label: "Runs" },
   { href: "/workflow", label: "Workflow" },
   { href: "/safety", label: "Safety" },
+  { href: "/evals", label: "Evals" },
   { href: "/roadmap", label: "Roadmap" },
 ];
 

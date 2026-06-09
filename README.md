@@ -117,6 +117,21 @@ See [docs/SAFETY_MODEL.md](docs/SAFETY_MODEL.md) for full details.
 
 ---
 
+## Docker (one-command start)
+
+Requires [Docker](https://docker.com) and [Docker Compose](https://docs.docker.com/compose/).
+
+```bash
+cp backend/.env.example backend/.env  # add API keys
+docker compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+The stack starts Postgres, runs Alembic migrations, and serves the backend on port 8000 and frontend on port 3000.
+
+---
+
 ## One-Command Dev
 
 ```bash

@@ -1,4 +1,6 @@
 import type {
+  EvalResult,
+  EvalScenario,
   PRDraft,
   RunCreatePayload,
   RunDetail,
@@ -118,6 +120,21 @@ export function streamRunEvents(
   };
 
   return source;
+}
+
+export function getEvalScenarios(): Promise<EvalScenario[]> {
+  return request<EvalScenario[]>("/evals/scenarios");
+}
+
+export function runEvals(scenarioId?: string): Promise<EvalResult[]> {
+  const url = scenarioId
+    ? `/evals/run?scenario_id=${encodeURIComponent(scenarioId)}`
+    : "/evals/run";
+  return request<EvalResult[]>(url, { method: "POST" });
+}
+
+export function getEvalResults(limit = 50): Promise<EvalResult[]> {
+  return request<EvalResult[]>(`/evals/results?limit=${limit}`);
 }
 
 export async function register(
