@@ -6,7 +6,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_current_user, get_db
+from app.db.models import User
 from app.db.models import EvalResult as EvalResultModel
 from app.evals.metrics import EvalResult as EvalResultMetric
 from app.evals.runner import run_eval_scenario
@@ -66,6 +67,7 @@ def list_scenarios() -> list[dict[str, str]]:
 def run_evals(
     scenario_id: str | None = None,
     db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
     """Trigger eval run(s) and persist results.
 

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEV_SECRET = "dev-only-change-in-production"
 
 
 class Settings(BaseSettings):
@@ -29,9 +32,28 @@ class Settings(BaseSettings):
     e2b_run_tests_after_approval: bool = False
     sandbox_runner_provider: str = "local"
     max_sandbox_upload_mb: int = 50
-    secret_key: str = "dev-only-change-in-production"
+    secret_key: str = _DEV_SECRET
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
+
+    @field_validator("secret_key")
+    @classmethod
+    def _require_strong_key(cls, v: str) -> str:
+        if v == _DEV_SECRET:
+            import logging, os
+            if os.getenv("ENV", "development") == "production":
+                raise ValueError("SECRET_KEY must be changed from its default in production")
+            logging.warning("SECRET_KEY is using the insecure default. Set SECRET_KEY env var before deploying.")
+        if len(v) < 16:
+            raise ValueError("SECRET_KEY must be at least 16 characters")
+        return v
+
+    @field_validator("algorithm")
+    @classmethod
+    def _restrict_algorithm(cls, v: str) -> str:
+        if v not in {"HS256", "HS384", "HS512"}:
+            raise ValueError("algorithm must be HS256, HS384, or HS512")
+        return v
 
     model_config = SettingsConfigDict(
         env_file=".env",

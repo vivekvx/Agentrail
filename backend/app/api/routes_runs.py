@@ -176,13 +176,24 @@ def create_run(
 
 
 @router.get("/{run_id}", response_model=RunRead)
-def get_run(run_id: int, db: Session = Depends(get_db)) -> RunRead:
-    return _run_read(_get_run_or_404(run_id, db))
+def get_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> RunRead:
+    run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
+    return _run_read(run)
 
 
 @router.post("/{run_id}/start", response_model=RunStartResponse)
-def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
+def start_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> RunStartResponse:
     run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
 
     run.status = "running"
     run.current_node = "planner"
@@ -285,8 +296,13 @@ def start_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
 
 
 @router.get("/{run_id}/approval", response_model=ApprovalResponse)
-def get_approval(run_id: int, db: Session = Depends(get_db)) -> ApprovalResponse:
+def get_approval(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> ApprovalResponse:
     run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
     return ApprovalResponse(
         id=run.id,
         status=run.status,
@@ -295,8 +311,13 @@ def get_approval(run_id: int, db: Session = Depends(get_db)) -> ApprovalResponse
 
 
 @router.get("/{run_id}/events", response_model=list[RunEventRead])
-def get_run_events(run_id: int, db: Session = Depends(get_db)) -> list[RunEventRead]:
-    _get_run_or_404(run_id, db)
+def get_run_events(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> list[RunEventRead]:
+    run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
     return [_run_event_read(event) for event in list_run_events(db, run_id)]
 
 
@@ -304,11 +325,12 @@ def get_run_events(run_id: int, db: Session = Depends(get_db)) -> list[RunEventR
 async def stream_run(
     run_id: int,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
 ) -> StreamingResponse:
-    """Stream live run events as Server-Sent Events (SSE)."""
     run = db.get(AgentRun, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Run not found")
+    _assert_run_access(run, current_user)
 
     from app.db.session import SessionLocal
 
@@ -323,8 +345,13 @@ async def stream_run(
 
 
 @router.get("/{run_id}/pr-draft", response_model=PRDraft)
-def get_pr_draft(run_id: int, db: Session = Depends(get_db)) -> PRDraft:
+def get_pr_draft(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> PRDraft:
     run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
     draft = generate_pr_draft(_pr_draft_state(run))
     log_run_event(
         db,
@@ -356,12 +383,14 @@ def create_pr_for_run(
     run_id: int,
     body: _CreatePRRequest,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
 ) -> _CreatePRResponse:
     settings = get_settings()
     if not settings.github_token:
         raise HTTPException(status_code=400, detail="GITHUB_TOKEN not configured")
 
     run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
 
     if not run.repo_path:
         raise HTTPException(status_code=400, detail="Run has no local repo path; cannot create PR")
@@ -377,8 +406,10 @@ def create_pr_for_run(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"GitHub API error: {e}")
+    except Exception:
+        import logging as _logging
+        _logging.exception("GitHub PR creation failed for run %s", run_id)
+        raise HTTPException(status_code=502, detail="GitHub API error. Check server logs.")
 
     log_run_event(
         db,
@@ -393,22 +424,36 @@ def create_pr_for_run(
 
 
 @router.post("/{run_id}/approve", response_model=RunStartResponse)
-def approve_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
+def approve_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> RunStartResponse:
+    _assert_run_access(_get_run_or_404(run_id, db), current_user)
     return _resume_run(run_id, "approve", "completed", db)
 
 
 @router.post("/{run_id}/reject", response_model=RunStartResponse)
-def reject_run(run_id: int, db: Session = Depends(get_db)) -> RunStartResponse:
+def reject_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> RunStartResponse:
+    _assert_run_access(_get_run_or_404(run_id, db), current_user)
     return _resume_run(run_id, "reject", "rejected", db)
 
 
 @router.post("/{run_id}/apply-patch", response_model=dict)
-def apply_patch(run_id: int, db: Session = Depends(get_db)) -> dict:
-    """Apply the stored patch diff to the local repository using the patch command."""
+def apply_patch(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> dict:
     import subprocess
     import tempfile
 
     run = _get_run_or_404(run_id, db)
+    _assert_run_access(run, current_user)
 
     if not run.patch_diff:
         raise HTTPException(
@@ -558,6 +603,12 @@ def _get_run_or_404(run_id: int, db: Session) -> AgentRun:
             detail="Run not found",
         )
     return run
+
+
+def _assert_run_access(run: AgentRun, current_user: "User | None") -> None:
+    """Raise 403 if authenticated user doesn't own this run."""
+    if current_user is not None and run.user_id is not None and run.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
 def _thread_config(run: AgentRun) -> dict[str, dict[str, str]]:
