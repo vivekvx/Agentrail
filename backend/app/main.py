@@ -5,6 +5,7 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI
 
+from app.api.routes_auth import router as auth_router
 from app.api.routes_runs import router as runs_router
 from app.db.session import init_db
 
@@ -31,6 +32,7 @@ def _warn_missing_llm_key() -> None:
 
 
 app = FastAPI(title="Agentrail API", version="0.1.0", lifespan=lifespan)
+app.include_router(auth_router)
 app.include_router(runs_router)
 
 

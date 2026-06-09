@@ -3,13 +3,25 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    runs: Mapped[list["AgentRun"]] = relationship("AgentRun", back_populates="owner")
 
 
 class AgentRun(Base):
@@ -35,6 +47,7 @@ class AgentRun(Base):
     risk_score: Mapped[str | None] = mapped_column(Text, nullable=True)
     final_report: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -46,6 +59,7 @@ class AgentRun(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+    owner: Mapped["User | None"] = relationship("User", back_populates="runs")
 
 
 class RunEvent(Base):
