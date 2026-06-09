@@ -6,6 +6,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-backend-111111?style=flat&labelColor=0A0A0A)
 ![Next.js](https://img.shields.io/badge/Next.js-frontend-111111?style=flat&labelColor=0A0A0A)
 ![LangGraph](https://img.shields.io/badge/LangGraph-agent_workflow-111111?style=flat&labelColor=0A0A0A)
+![CI](https://github.com/vivekvx/Agentrail/actions/workflows/ci.yml/badge.svg)
 
 Debugging a repository is slow: reproduce the bug, trace evidence through files, propose a fix, run tests, assess risk, write the PR description. Agentrail automates every step — scanning code, collecting evidence, explaining root cause, generating a patch diff, running tests, and scoring residual risk — then pauses for your explicit approval before anything touches your repository.
 
