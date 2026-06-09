@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///./agentrail.db"
+    # SQLite fallback for local dev: sqlite:///./agentrail.db
+    database_url: str = "postgresql+psycopg2://agentrail:agentrail@localhost:5432/agentrail"
     openai_api_key: str | None = None
     openai_base_url: str | None = None
     openai_model: str = "gpt-4.1-mini"

@@ -50,6 +50,8 @@ uv sync --extra dev
 uv run uvicorn app.main:app --port 8000 --reload
 ```
 
+> **Database:** The default `DATABASE_URL` points to Postgres. For local dev without Postgres, set `DATABASE_URL=sqlite:///./agentrail.db` in `backend/.env`.
+
 ### 2. Frontend
 
 ```bash
