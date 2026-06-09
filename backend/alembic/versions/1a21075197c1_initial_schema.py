@@ -57,7 +57,7 @@ def upgrade() -> None:
         sa.Column('message', sa.Text(), nullable=True),
         sa.Column('payload_json', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(['run_id'], ['agent_runs.id']),
+        sa.ForeignKeyConstraint(['run_id'], ['agent_runs.id'], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint('id'),
     )
     op.create_index(op.f('ix_run_events_id'), 'run_events', ['id'], unique=False)
