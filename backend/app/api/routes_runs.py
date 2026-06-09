@@ -15,6 +15,8 @@ from app.db.models import AgentRun, RunEvent
 from app.db.session import get_db
 from pydantic import BaseModel as _BaseModel
 
+from app.api.deps import get_optional_user
+from app.db.models import User
 from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead, RunStartResponse
 from app.services.github_issues import GitHubIssueFetchError, fetch_github_issue_context
 from app.services.pr_draft import PRDraft, create_github_pr, generate_pr_draft
@@ -36,18 +38,21 @@ TOKEN_PATTERN = re.compile(r"\b(?:ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b"
 def list_runs(
     limit: int = 50,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
 ) -> list[RunRead]:
-    runs = (
-        db.query(AgentRun)
-        .order_by(AgentRun.created_at.desc())
-        .limit(max(1, min(limit, 200)))
-        .all()
-    )
+    q = db.query(AgentRun)
+    if current_user is not None:
+        q = q.filter(AgentRun.user_id == current_user.id)
+    runs = q.order_by(AgentRun.created_at.desc()).limit(max(1, min(limit, 200))).all()
     return [_run_read(run) for run in runs]
 
 
 @router.post("", response_model=RunRead, status_code=status.HTTP_201_CREATED)
-def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
+def create_run(
+    payload: RunCreate,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+) -> RunRead:
     repo_path: str | None = None
     repo_url: str | None = None
     issue_context: dict[str, object] | None = None
@@ -128,6 +133,7 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> RunRead:
         test_command=payload.test_command,
         status="created",
         thread_id=str(uuid4()),
+        user_id=current_user.id if current_user is not None else None,
     )
     db.add(run)
     db.commit()

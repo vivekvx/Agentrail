@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     e2b_run_tests_after_approval: bool = False
     sandbox_runner_provider: str = "local"
     max_sandbox_upload_mb: int = 50
-    secret_key: str = "changeme-use-a-real-secret-in-production"
+    secret_key: str = "dev-only-change-in-production"
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
 
