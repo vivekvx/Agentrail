@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_auth import router as auth_router
+from app.api.routes_evals import router as evals_router
 from app.api.routes_runs import router as runs_router
 from app.db.session import init_db
 
@@ -41,6 +42,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router)
+app.include_router(evals_router)
 app.include_router(runs_router)
 
 

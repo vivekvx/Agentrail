@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -60,6 +60,17 @@ class AgentRun(Base):
         onupdate=utc_now,
     )
     owner: Mapped["User | None"] = relationship("User", back_populates="runs")
+
+
+class EvalResult(Base):
+    __tablename__ = "eval_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    scenario_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    details_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
 
 
 class RunEvent(Base):
