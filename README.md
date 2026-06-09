@@ -7,9 +7,9 @@
 ![Next.js](https://img.shields.io/badge/Next.js-frontend-111111?style=flat&labelColor=0A0A0A)
 ![LangGraph](https://img.shields.io/badge/LangGraph-agent_workflow-111111?style=flat&labelColor=0A0A0A)
 
-Agentrail scans a repository, collects code evidence, explains root cause, proposes a fix strategy, previews a patch, pauses for human approval, runs tests, scores risk, and exports a PR-ready report — without writing to your repository.
+Debugging a repository is slow: reproduce the bug, trace evidence through files, propose a fix, run tests, assess risk, write the PR description. Agentrail automates every step — scanning code, collecting evidence, explaining root cause, generating a patch diff, running tests, and scoring residual risk — then pauses for your explicit approval before anything touches your repository.
 
-> Local/portfolio MVP with production-minded safety design. Not a fully autonomous coding system.
+> Production-minded safety design with human-in-the-loop approval gate. Your repository is never modified without your explicit action.
 
 <p align="center">
   <img src="docs/screenshots/hero-dashboard.png" width="32%" alt="Agentrail command center" />
