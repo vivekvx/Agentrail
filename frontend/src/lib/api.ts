@@ -82,6 +82,37 @@ export function applyPatch(runId: number) {
   );
 }
 
+export function streamRunEvents(
+  runId: number,
+  onEvent: (event: RunEvent) => void,
+  onEnd: () => void,
+  onError: (err: Event) => void,
+): EventSource {
+  const url = `${API_PREFIX}/runs/${runId}/stream`;
+  const source = new EventSource(url);
+
+  source.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data as string) as { event_type?: string } & RunEvent;
+      if (data.event_type === "stream_end") {
+        onEnd();
+        source.close();
+        return;
+      }
+      onEvent(data as RunEvent);
+    } catch {
+      // ignore parse errors
+    }
+  };
+
+  source.onerror = (err) => {
+    onError(err);
+    source.close();
+  };
+
+  return source;
+}
+
 export async function register(
   email: string,
   password: string,

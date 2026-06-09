@@ -12,6 +12,7 @@ import {
   getRunEvents,
   rejectRun,
   startRun,
+  streamRunEvents,
 } from "@/lib/api";
 import { buildWorkflowViews, getPreferredWorkflowNodeId } from "@/lib/agent-graph";
 import { saveRecentRunId } from "@/lib/recent-runs";
@@ -70,19 +71,41 @@ function RunDetailShellInner({ runId }: { runId: number }) {
   }, [refresh]);
 
   useEffect(() => {
-    if (!run) {
-      return;
-    }
-    if (run.status !== "running" && run.status !== "pending_approval") {
-      return;
-    }
+    if (!run) return;
+    if (["completed", "failed", "rejected"].includes(run.status)) return;
 
-    const interval = window.setInterval(() => {
-      void refresh();
-    }, 5000);
+    const source = streamRunEvents(
+      runId,
+      (newEvent) => {
+        setEvents((prev) => {
+          if (prev.some((e) => e.id === newEvent.id)) return prev;
+          return [...prev, newEvent];
+        });
+      },
+      () => {
+        // stream ended — do a final refresh to get latest run status
+        loadRunState(runId)
+          .then(({ run: r, events: e }) => {
+            setRun(r);
+            setEvents(e);
+          })
+          .catch(() => {});
+      },
+      () => {
+        // SSE error — fall back to a single refresh
+        loadRunState(runId)
+          .then(({ run: r, events: e }) => {
+            setRun(r);
+            setEvents(e);
+          })
+          .catch(() => {});
+      },
+    );
 
-    return () => window.clearInterval(interval);
-  }, [refresh, run]);
+    return () => {
+      source.close();
+    };
+  }, [runId, run?.status]);
 
   const activeNodeId =
     run && events.length >= 0
