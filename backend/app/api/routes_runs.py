@@ -5,6 +5,7 @@ import re
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from langgraph.types import Command
 from sqlalchemy.orm import Session
 
@@ -16,7 +17,7 @@ from app.schemas.runs import ApprovalResponse, RunCreate, RunEventRead, RunRead,
 from app.services.github_issues import GitHubIssueFetchError, fetch_github_issue_context
 from app.services.pr_draft import PRDraft, generate_pr_draft
 from app.services.repo_importer import import_github_repository
-from app.services.run_events import list_run_events, log_run_event
+from app.services.run_events import list_run_events, log_run_event, stream_run_events
 from app.tools.github_issue_url import validate_github_issue_url
 from app.tools.github_url import validate_github_repo_url
 from app.tools.path_policy import resolve_path
@@ -289,6 +290,28 @@ def get_approval(run_id: int, db: Session = Depends(get_db)) -> ApprovalResponse
 def get_run_events(run_id: int, db: Session = Depends(get_db)) -> list[RunEventRead]:
     _get_run_or_404(run_id, db)
     return [_run_event_read(event) for event in list_run_events(db, run_id)]
+
+
+@router.get("/{run_id}/stream")
+async def stream_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+) -> StreamingResponse:
+    """Stream live run events as Server-Sent Events (SSE)."""
+    run = db.get(AgentRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    from app.db.session import SessionLocal
+
+    return StreamingResponse(
+        stream_run_events(run_id, SessionLocal),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/{run_id}/pr-draft", response_model=PRDraft)
