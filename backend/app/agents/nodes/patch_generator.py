@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import ast
 import difflib
 import os
 
 from app.agents.state import AgentRunState
+from app.core.config import get_settings
+from app.services.llm_provider import generate_patch_code
+
+# Lines of context around the evidence range sent to the LLM patch writer.
+LLM_WINDOW_PADDING = 30
 
 
 def patch_generator_node(state: AgentRunState) -> dict[str, object]:
@@ -12,16 +18,118 @@ def patch_generator_node(state: AgentRunState) -> dict[str, object]:
     evidence: list[dict[str, object]] = state.get("evidence", [])
 
     if isinstance(fix_strategy, dict) and fix_strategy.get("target_files"):
+        diff = _llm_diff_from_fix_strategy(fix_strategy, evidence, repo_path, state)
+        if diff:
+            return {"patch_diff": diff, "patch_mode": "llm"}
+
         diff = _real_diff_from_fix_strategy(fix_strategy, evidence, repo_path)
         if diff:
-            return {"patch_diff": diff}
+            return {"patch_diff": diff, "patch_mode": "annotated-diff"}
 
-    # Fallback: legacy hardcoded auth patch for demo purposes.
+    # Final fallback: hardcoded demo patch so the offline demo (no API key)
+    # still shows an end-to-end run against the bundled sample repo.
     file_path = _auth_context_path_with_token_persistence(evidence)
     if file_path is not None:
-        return {"patch_diff": _auth_refresh_patch(file_path)}
+        return {"patch_diff": _auth_refresh_patch(file_path), "patch_mode": "legacy-demo"}
 
     return {}
+
+
+def _llm_diff_from_fix_strategy(
+    fix_strategy: dict[str, object],
+    evidence: list[dict[str, object]],
+    repo_path: str | None,
+    state: AgentRunState,
+) -> str:
+    """LLM-written patch: real code changes, validated, diffed against disk.
+
+    Returns "" whenever the LLM is disabled or any output fails validation,
+    so callers always fall back to the deterministic diff paths.
+    """
+    settings = get_settings()
+    if not settings.llm_patch_enabled:
+        return ""
+
+    target_files = [
+        f for f in (fix_strategy.get("target_files") or []) if isinstance(f, str)
+    ]
+    if not target_files:
+        return ""
+
+    evidence_by_file: dict[str, dict[str, object]] = {}
+    for item in evidence:
+        fp = item.get("file_path")
+        if isinstance(fp, str) and fp not in evidence_by_file:
+            evidence_by_file[fp] = item
+
+    hunks: list[str] = []
+    for rel_path in target_files:
+        ev = evidence_by_file.get(rel_path)
+        abs_path = _resolve_abs_path(rel_path, ev, repo_path)
+        if not abs_path:
+            continue
+        try:
+            with open(abs_path, encoding="utf-8", errors="replace") as fh:
+                original_lines = fh.readlines()
+        except OSError:
+            continue
+
+        ev_start, ev_end = _evidence_line_range(ev, original_lines)
+        win_start = max(0, ev_start - LLM_WINDOW_PADDING)
+        win_end = min(len(original_lines), ev_end + LLM_WINDOW_PADDING)
+        window = "".join(original_lines[win_start:win_end])
+
+        proposal = generate_patch_code(
+            rel_path,
+            window,
+            win_start + 1,
+            state.get("user_task", ""),
+            state.get("root_cause", ""),
+            fix_strategy,
+            settings=settings,
+        )
+        if proposal is None:
+            continue
+
+        new_window_lines = proposal.new_code.splitlines(keepends=True)
+        if new_window_lines and not new_window_lines[-1].endswith("\n"):
+            new_window_lines[-1] += "\n"
+        modified_lines = (
+            original_lines[:win_start] + new_window_lines + original_lines[win_end:]
+        )
+
+        if not _valid_syntax(rel_path, "".join(modified_lines)):
+            continue
+
+        diff_lines = list(
+            difflib.unified_diff(
+                original_lines,
+                modified_lines,
+                fromfile=f"a/{rel_path}",
+                tofile=f"b/{rel_path}",
+                lineterm="",
+            )
+        )
+        if diff_lines:
+            hunks.append("\n".join(diff_lines) + "\n")
+
+    return "\n".join(hunks)
+
+
+def _valid_syntax(rel_path: str, text: str) -> bool:
+    """Cheap syntax gate before exposing an LLM patch. Python gets a real
+    parse; brace languages get balance checks; everything else passes."""
+    if rel_path.endswith(".py"):
+        try:
+            ast.parse(text)
+            return True
+        except SyntaxError:
+            return False
+    if rel_path.endswith((".ts", ".tsx", ".js", ".jsx", ".json", ".css")):
+        for open_ch, close_ch in (("{", "}"), ("(", ")"), ("[", "]")):
+            if text.count(open_ch) != text.count(close_ch):
+                return False
+    return True
 
 
 def _real_diff_from_fix_strategy(

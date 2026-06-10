@@ -14,7 +14,7 @@ def root_cause_node(state: AgentRunState) -> dict[str, object]:
 
     settings = get_settings()
     if not settings.llm_root_cause_enabled:
-        return fallback
+        return {**fallback, "analysis_mode": "heuristic"}
 
     analysis = analyze_root_cause(
         evidence,
@@ -29,11 +29,13 @@ def root_cause_node(state: AgentRunState) -> dict[str, object]:
                 f"{fallback['root_cause']} "
                 "LLM root cause analysis was unavailable; used deterministic fallback."
             ),
+            "analysis_mode": "heuristic",
         }
 
     return {
         "root_cause": analysis.root_cause,
         "root_cause_analysis": analysis.model_dump(mode="json"),
+        "analysis_mode": "llm",
     }
 
 

@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
+      - name: Lint
+        run: uv run ruff check app tests
+
       - name: Run tests
         env:
           DATABASE_URL: sqlite:///./test.db

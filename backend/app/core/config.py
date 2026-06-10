@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEV_SECRET = "dev-only-change-in-production"
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4.1-mini"
     llm_root_cause_enabled: bool = False
     llm_fix_strategy_enabled: bool = False
+    llm_patch_enabled: bool = False
     llm_timeout_seconds: int = 30
     repo_workspace_dir: str = "./data/repos"
     github_import_enabled: bool = True
@@ -40,13 +41,29 @@ class Settings(BaseSettings):
     @classmethod
     def _require_strong_key(cls, v: str) -> str:
         if v == _DEV_SECRET:
-            import logging, os
+            import logging
+            import os
             if os.getenv("ENV", "development") == "production":
                 raise ValueError("SECRET_KEY must be changed from its default in production")
             logging.warning("SECRET_KEY is using the insecure default. Set SECRET_KEY env var before deploying.")
         if len(v) < 16:
             raise ValueError("SECRET_KEY must be at least 16 characters")
         return v
+
+    @model_validator(mode="after")
+    def _auto_enable_llm_nodes(self) -> "Settings":
+        # When an API key is configured, LLM analysis is what the user wants:
+        # enable any LLM flag the user did not explicitly set. Explicit
+        # LLM_*_ENABLED=false in env/.env always wins.
+        if (self.openai_api_key or "").strip():
+            for flag in (
+                "llm_root_cause_enabled",
+                "llm_fix_strategy_enabled",
+                "llm_patch_enabled",
+            ):
+                if flag not in self.model_fields_set:
+                    object.__setattr__(self, flag, True)
+        return self
 
     @field_validator("algorithm")
     @classmethod

@@ -37,6 +37,14 @@ class RootCauseAnalysis(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
+class PatchProposal(BaseModel):
+    new_code: str = Field(min_length=1, max_length=20_000)
+    explanation: str = Field(min_length=1, max_length=2_000)
+    confidence: Literal["low", "medium", "high"]
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class FixStrategy(BaseModel):
     summary: str = Field(min_length=1, max_length=1_000)
     target_files: list[str] = Field(default_factory=list, max_length=12)
@@ -252,6 +260,82 @@ def propose_fix_strategy(
         return None
 
     return _filter_fix_strategy(parsed, prepared["allowed_files"])
+
+
+def generate_patch_code(
+    file_path: str,
+    code_window: str,
+    window_start_line: int,
+    user_task: str,
+    root_cause: str,
+    fix_strategy: dict[str, object] | None,
+    *,
+    settings: Settings | None = None,
+) -> PatchProposal | None:
+    """Ask the LLM to rewrite a code window to implement the fix strategy.
+
+    Returns the proposed replacement for exactly the given window, or None
+    when the LLM is disabled, unavailable, or returns invalid output. The
+    caller is responsible for diffing and syntax validation.
+    """
+    active_settings = settings or get_settings()
+    if not active_settings.llm_patch_enabled:
+        return None
+    if SECRET_FILE_PATTERN.search(file_path) or _looks_secret(code_window):
+        return None
+
+    client = _get_openai_client(
+        (active_settings.openai_api_key or "").strip(),
+        active_settings.llm_timeout_seconds,
+        (active_settings.openai_base_url or "").strip(),
+    )
+    if client is None:
+        return None
+
+    instructions = (
+        "You are Agentrail's patch writer. You receive a window of code from one file "
+        "and a fix strategy. Rewrite the window to implement the fix. "
+        "Rules: return new_code as the FULL replacement for the window — every line, "
+        "modified or not, in original order. Preserve indentation style exactly. "
+        "Make the minimal change that implements the strategy. "
+        "Do not add code outside the window's scope. Do not include line numbers, "
+        "markdown fences, or commentary inside new_code. Never include secrets."
+    )
+    payload = {
+        "file_path": file_path,
+        "window_start_line": window_start_line,
+        "code_window": code_window,
+        "user_task": user_task,
+        "root_cause": root_cause,
+        "fix_strategy": fix_strategy,
+    }
+    messages = [
+        {"role": "system", "content": instructions},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=True)},
+    ]
+    model = (
+        active_settings.openai_model or DEFAULT_OPENAI_MODEL
+    ).strip() or DEFAULT_OPENAI_MODEL
+
+    try:
+        content = _complete_with_fallback(
+            client,
+            model,
+            messages,
+            "patch_proposal",
+            PatchProposal.model_json_schema(),
+        )
+        if not content:
+            return None
+        proposal = PatchProposal.model_validate_json(_extract_json(content))
+    except (AttributeError, TypeError, ValidationError, json.JSONDecodeError, ValueError):
+        return None
+    except Exception:
+        return None
+
+    if _looks_secret(proposal.new_code):
+        return None
+    return proposal
 
 
 def prepare_evidence_for_llm(

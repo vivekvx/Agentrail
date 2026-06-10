@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from app.evals.metrics import score_eval_run
 from app.evals.report import render_eval_report

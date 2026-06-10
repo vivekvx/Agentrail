@@ -82,8 +82,9 @@ Copy `backend/.env.example` to `backend/.env`. All external integrations are opt
 | `OPENAI_API_KEY` | LLM provider key (OpenAI or any OpenAI-compatible endpoint) |
 | `OPENAI_BASE_URL` | Override endpoint — use `https://api.groq.com/openai/v1` for Groq |
 | `OPENAI_MODEL` | Model name, e.g. `llama-3.3-70b-versatile` |
-| `LLM_ROOT_CAUSE_ENABLED` | Enable LLM root-cause analysis (`true`/`false`) |
-| `LLM_FIX_STRATEGY_ENABLED` | Enable LLM fix-strategy generation (`true`/`false`) |
+| `LLM_ROOT_CAUSE_ENABLED` | LLM root-cause analysis — auto-enabled when an API key is set |
+| `LLM_FIX_STRATEGY_ENABLED` | LLM fix-strategy generation — auto-enabled when an API key is set |
+| `LLM_PATCH_ENABLED` | LLM-written patch code — auto-enabled when an API key is set |
 | `GITHUB_TOKEN` | GitHub PAT for private repo access (optional) |
 | `GITHUB_IMPORT_ENABLED` | Allow public repo cloning (`true`/`false`) |
 | `E2B_ENABLED` | Use E2B cloud sandbox for test execution (`true`/`false`) |
@@ -96,9 +97,19 @@ Copy `backend/.env.example` to `backend/.env`. All external integrations are opt
 OPENAI_BASE_URL=https://api.groq.com/openai/v1
 OPENAI_API_KEY=gsk_...
 OPENAI_MODEL=llama-3.3-70b-versatile
-LLM_ROOT_CAUSE_ENABLED=true
-LLM_FIX_STRATEGY_ENABLED=true
 ```
+
+Setting an API key auto-enables all three LLM stages — no flags needed. Set any
+`LLM_*_ENABLED=false` to opt out individually.
+
+**Two analysis modes** (reported per run as `analysis_mode` / `patch_mode`):
+
+- **LLM mode** (API key set) — root cause, fix strategy, and patch code are written
+  by the model, grounded in collected evidence. Patches are syntax-validated
+  (`ast.parse` for Python, brace balancing for TS/JS) before being shown; invalid
+  output falls back to the deterministic path.
+- **Heuristic mode** (no key) — deterministic evidence scoring and annotated diffs.
+  Exists so the demo runs fully offline; it does not write fix code.
 
 ---
 
