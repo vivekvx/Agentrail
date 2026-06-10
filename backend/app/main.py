@@ -5,10 +5,13 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.api.routes_auth import router as auth_router
 from app.api.routes_evals import router as evals_router
 from app.api.routes_runs import router as runs_router
+from app.core.limiter import limiter
 from app.db.session import init_db
 
 
@@ -34,6 +37,8 @@ def _warn_missing_llm_key() -> None:
 
 
 app = FastAPI(title="Agentrail API", version="0.1.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],

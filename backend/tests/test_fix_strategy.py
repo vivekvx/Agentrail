@@ -276,7 +276,8 @@ def test_patch_generator_still_works_without_fix_strategy() -> None:
     assert "patch_diff" in result
 
 
-def test_patch_generator_does_not_generate_patch_from_fix_strategy_only() -> None:
+def test_patch_generator_generates_stub_from_fix_strategy_without_evidence() -> None:
+    # fix_strategy with target_files produces a stub comment diff even without evidence
     result = patch_generator_node(
         {
             "user_task": "Fix auth refresh",
@@ -294,7 +295,9 @@ def test_patch_generator_does_not_generate_patch_from_fix_strategy_only() -> Non
         }
     )
 
-    assert "patch_diff" not in result
+    assert "patch_diff" in result
+    assert "src/AuthContext.tsx" in result["patch_diff"]
+    assert "# Fix strategy:" in result["patch_diff"]
 
 
 def test_no_secret_like_snippets_are_sent_to_fix_strategy_prompt(

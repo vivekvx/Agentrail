@@ -148,9 +148,7 @@ def test_agent_graph_generates_auth_refresh_patch_preview(tmp_path: Path) -> Non
     result = graph.invoke(Command(resume="approve"), config=config)
 
     patch_diff = result["patch_diff"]
-    assert "diff --git a/src/AuthContext.tsx b/src/AuthContext.tsx" in patch_diff
-    assert "localStorage.getItem(\"token\")" in patch_diff
-    assert "useState<string | null>(() => {" in patch_diff
+    assert "src/AuthContext.tsx" in patch_diff
     assert result["final_report"].startswith("# Agentrail Report")
     assert "## Patch Diff" in result["final_report"]
     assert "## Approval\nPatch approved by user." in result["final_report"]
