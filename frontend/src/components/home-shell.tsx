@@ -73,13 +73,13 @@ export function HomeShell() {
       </section>
 
       {/* Safety guarantees strip */}
-      <section className="grid gap-px bg-[var(--border)] sm:grid-cols-3">
+      <section className="grid gap-x-10 gap-y-6 border-b border-[var(--border)] py-8 sm:grid-cols-3">
         {[
           ["Patch preview only", "No direct repository mutation. Review before applying."],
           ["Approval gate", "LangGraph interrupt pauses before verification continues."],
           ["Copy-ready PR draft", "Manual export only. No hidden GitHub writes."],
         ].map(([title, body]) => (
-          <div className="bg-background px-6 py-5" key={title}>
+          <div key={title}>
             <div className="size-1.5 rounded-full bg-[var(--accent)] mb-4" />
             <h2 className="text-sm font-semibold tracking-tight text-zinc-100">
               {title}
@@ -89,8 +89,8 @@ export function HomeShell() {
         ))}
       </section>
 
-      {/* Run creation + recent runs */}
-      <section className="grid flex-1 gap-10 py-10 lg:grid-cols-[minmax(0,1.1fr)_360px]">
+      {/* Run creation + recent runs — right rail matches hero's 400px column */}
+      <section className="grid flex-1 gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
         <CreateRunForm />
         <RecentRunsPanel />
       </section>
