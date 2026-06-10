@@ -1,21 +1,22 @@
 from __future__ import annotations
 
+import difflib
+import os
+
 from app.agents.state import AgentRunState
 
 
 def patch_generator_node(state: AgentRunState) -> dict[str, object]:
-    # Prefer LLM fix strategy when available.
     fix_strategy = state.get("fix_strategy")
+    repo_path: str | None = state.get("repo_path")
+    evidence: list[dict[str, object]] = state.get("evidence", [])
+
     if isinstance(fix_strategy, dict) and fix_strategy.get("target_files"):
-        diff = _stub_diff_from_fix_strategy(
-            fix_strategy,
-            state.get("evidence", []),
-        )
+        diff = _real_diff_from_fix_strategy(fix_strategy, evidence, repo_path)
         if diff:
             return {"patch_diff": diff}
 
     # Fallback: legacy hardcoded auth patch for demo purposes.
-    evidence = state.get("evidence", [])
     file_path = _auth_context_path_with_token_persistence(evidence)
     if file_path is not None:
         return {"patch_diff": _auth_refresh_patch(file_path)}
@@ -23,15 +24,17 @@ def patch_generator_node(state: AgentRunState) -> dict[str, object]:
     return {}
 
 
-def _stub_diff_from_fix_strategy(
+def _real_diff_from_fix_strategy(
     fix_strategy: dict[str, object],
     evidence: list[dict[str, object]],
+    repo_path: str | None,
 ) -> str:
-    """Generate a human-readable stub diff from LLM fix strategy output.
+    """Generate a real unified diff from fix strategy.
 
-    Shows the change plan as comment lines so developers know what to edit.
-    Not a syntactically perfect patch — Apply Patch dry-run will reject it,
-    which is intentional: developer applies manually using this as a guide.
+    When the actual file is readable from disk, produces a valid ``patch``-
+    compatible unified diff by appending TODO annotations at the evidence
+    location.  Falls back to a human-readable stub when the file cannot be
+    read (e.g. no repo_path, remote repo, or file missing).
     """
     target_files: list[str] = [
         f for f in (fix_strategy.get("target_files") or []) if isinstance(f, str)
@@ -45,39 +48,140 @@ def _stub_diff_from_fix_strategy(
     if not target_files:
         return ""
 
-    # Evidence snippet map: file_path -> first snippet
-    snippets: dict[str, str] = {}
+    # Build evidence index: file_path -> evidence item
+    evidence_by_file: dict[str, dict[str, object]] = {}
     for item in evidence:
         fp = item.get("file_path")
-        snip = item.get("snippet")
-        if isinstance(fp, str) and isinstance(snip, str) and fp not in snippets:
-            snippets[fp] = snip
+        if isinstance(fp, str) and fp not in evidence_by_file:
+            evidence_by_file[fp] = item
 
-    lines: list[str] = []
-    lines.append(f"# Fix strategy: {summary}")
-    lines.append(f"# Confidence: {confidence}")
-    lines.append("#")
+    header_lines = [
+        f"# Fix strategy: {summary}",
+        f"# Confidence: {confidence}",
+        "#",
+    ]
     if change_plan:
-        lines.append("# Change plan:")
+        header_lines.append("# Change plan:")
         for step in change_plan:
-            lines.append(f"#   - {step}")
+            header_lines.append(f"#   - {step}")
+    header_lines.append("")
+
+    all_hunks: list[str] = []
+    for rel_path in target_files:
+        ev = evidence_by_file.get(rel_path)
+        abs_path = _resolve_abs_path(rel_path, ev, repo_path)
+
+        if abs_path and os.path.isfile(abs_path):
+            hunk = _diff_file_at_evidence(abs_path, rel_path, ev, change_plan)
+        else:
+            hunk = _stub_hunk(rel_path, ev, change_plan)
+
+        if hunk:
+            all_hunks.append(hunk)
+
+    if not all_hunks:
+        return ""
+
+    return "\n".join(header_lines) + "\n".join(all_hunks)
+
+
+def _resolve_abs_path(
+    rel_path: str,
+    ev: dict[str, object] | None,
+    repo_path: str | None,
+) -> str | None:
+    if repo_path:
+        candidate = os.path.normpath(os.path.join(repo_path, rel_path))
+        if os.path.isfile(candidate):
+            return candidate
+    if ev:
+        fp = ev.get("file_path")
+        if isinstance(fp, str) and os.path.isfile(fp):
+            return fp
+    return None
+
+
+def _diff_file_at_evidence(
+    abs_path: str,
+    rel_path: str,
+    ev: dict[str, object] | None,
+    change_plan: list[str],
+) -> str:
+    """Read the real file and produce a valid unified diff at the evidence location."""
+    try:
+        with open(abs_path, encoding="utf-8", errors="replace") as fh:
+            original_lines = fh.readlines()
+    except OSError:
+        return _stub_hunk(rel_path, ev, change_plan)
+
+    start_0, end_0 = _evidence_line_range(ev, original_lines)
+
+    # Proposed version: keep original block + append TODO annotations
+    original_block = original_lines[start_0:end_0]
+    proposed_block: list[str] = list(original_block)
+    for step in change_plan[:6]:
+        proposed_block.append(f"# TODO: {step}\n")
+
+    modified_lines = original_lines[:start_0] + proposed_block + original_lines[end_0:]
+
+    diff_lines = list(
+        difflib.unified_diff(
+            original_lines,
+            modified_lines,
+            fromfile=f"a/{rel_path}",
+            tofile=f"b/{rel_path}",
+            lineterm="",
+        )
+    )
+
+    if not diff_lines:
+        return _stub_hunk(rel_path, ev, change_plan)
+
+    return "\n".join(diff_lines) + "\n"
+
+
+def _evidence_line_range(
+    ev: dict[str, object] | None,
+    all_lines: list[str],
+) -> tuple[int, int]:
+    n = len(all_lines)
+    if ev is None:
+        return 0, min(10, n)
+    start_1 = ev.get("start_line")
+    end_1 = ev.get("end_line")
+    start_0 = (int(start_1) - 1) if isinstance(start_1, int) else 0
+    end_0 = int(end_1) if isinstance(end_1, int) else min(start_0 + 10, n)
+    return max(0, start_0), min(end_0, n)
+
+
+def _stub_hunk(
+    rel_path: str,
+    ev: dict[str, object] | None,
+    change_plan: list[str],
+) -> str:
+    """Fallback stub when file cannot be read from disk."""
+    snippet: str = ev.get("snippet", "") if ev else ""
+    snippet_lines = snippet.splitlines() if snippet else []
+    n_ctx = len(snippet_lines)
+    n_add = len(change_plan[:6])
+
+    lines: list[str] = [
+        f"diff --git a/{rel_path} b/{rel_path}",
+        f"--- a/{rel_path}",
+        f"+++ b/{rel_path}",
+        f"@@ -1,{n_ctx} +1,{n_ctx + n_add} @@",
+    ]
+    for sl in snippet_lines:
+        lines.append(f" {sl}")
+    for step in change_plan[:6]:
+        lines.append(f"+# TODO: {step}")
     lines.append("")
-
-    for file_path in target_files:
-        lines.append(f"diff --git a/{file_path} b/{file_path}")
-        lines.append(f"--- a/{file_path}")
-        lines.append(f"+++ b/{file_path}")
-        lines.append("@@ -1,0 +1,0 @@")
-        snippet = snippets.get(file_path)
-        if snippet:
-            for snip_line in snippet.splitlines()[:6]:
-                lines.append(f" {snip_line}")
-        for step in change_plan[:4]:
-            lines.append(f"+# TODO: {step}")
-        lines.append("")
-
     return "\n".join(lines)
 
+
+# ---------------------------------------------------------------------------
+# Legacy helpers
+# ---------------------------------------------------------------------------
 
 def _auth_context_path_with_token_persistence(
     evidence: list[dict[str, object]],

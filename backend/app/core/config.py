@@ -9,8 +9,8 @@ _DEV_SECRET = "dev-only-change-in-production"
 
 
 class Settings(BaseSettings):
-    # SQLite fallback for local dev: sqlite:///./agentrail.db
-    database_url: str = "postgresql+psycopg2://agentrail:agentrail@localhost:5432/agentrail"
+    # Use Postgres in production: postgresql+psycopg2://user:pass@host/db
+    database_url: str = "sqlite:///./agentrail.db"
     openai_api_key: str | None = None
     openai_base_url: str | None = None
     openai_model: str = "gpt-4.1-mini"
