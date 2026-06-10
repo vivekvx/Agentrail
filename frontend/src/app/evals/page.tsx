@@ -97,7 +97,7 @@ export default function EvalsPage() {
             Scenarios ({scenarios.length})
           </h2>
           {scenarios.length === 0 && !loadingResults ? (
-            <p className="text-sm text-zinc-600">No scenarios registered.</p>
+            <p className="text-sm text-zinc-500">No scenarios registered.</p>
           ) : (
             scenarios.map((s) => (
               <Card key={s.id}>
@@ -128,7 +128,7 @@ export default function EvalsPage() {
           </div>
 
           {loadingResults ? (
-            <div className="flex items-center gap-2 text-sm text-zinc-600">
+            <div className="flex items-center gap-2 text-sm text-zinc-500">
               <RefreshCw className="size-3.5 animate-spin" />
               Loading…
             </div>

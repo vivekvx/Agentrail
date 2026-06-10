@@ -43,7 +43,7 @@ export default function SafetyPage() {
           <h1 className="max-w-3xl text-balance text-5xl font-semibold tracking-tight text-zinc-100 leading-[1.1] sm:text-6xl">
             Designed for review control, not invisible writes.
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-8 text-zinc-500">
+          <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
             Agentrail keeps every risky action explicit. Patches stay as
             previews. PR drafts stay copy-only. Verification commands stay
             constrained.
@@ -75,11 +75,11 @@ export default function SafetyPage() {
           const Icon = item.icon;
           return (
             <div className="bg-background p-6 group" key={item.title}>
-              <Icon className="size-5 text-zinc-600 mb-4 group-hover:text-[var(--accent)] transition" />
+              <Icon className="size-5 text-zinc-500 mb-4 group-hover:text-[var(--accent)] transition" />
               <h2 className="text-sm font-semibold tracking-tight text-zinc-100">
                 {item.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">{item.body}</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-400">{item.body}</p>
             </div>
           );
         })}

@@ -24,7 +24,7 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
 
       <div className="mt-5 space-y-5">
         <div>
-          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
             Repository
           </div>
           <p className="mt-2 break-all text-sm leading-7 text-zinc-200">
@@ -34,7 +34,7 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
 
         {run.repo_url ? (
           <div className="border-t border-border pt-5">
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
               GitHub URL
             </div>
             <p className="mt-2 break-all text-sm leading-7 text-zinc-300">
@@ -45,7 +45,7 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
 
         {run.issue_url ? (
           <div className="border-t border-border pt-5">
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
               GitHub issue
             </div>
             <a
@@ -80,7 +80,7 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
         ) : null}
 
         <div className="border-t border-border pt-5">
-          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+          <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
             User task
           </div>
           <p className="mt-2 text-sm leading-7 text-zinc-200">{run.user_task}</p>
@@ -88,7 +88,7 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
 
         {run.expected_behavior ? (
           <div className="border-t border-border pt-5">
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
               Expected behavior
             </div>
             <p className="mt-2 text-sm leading-7 text-zinc-300">
@@ -99,7 +99,7 @@ export function RunOverviewCard({ run }: { run: RunDetail }) {
 
         {run.test_command ? (
           <div className="border-t border-border pt-5">
-            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+            <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
               Test command
             </div>
             <code className="mt-2 block bg-[#0d0d0d] p-3 font-mono text-xs text-zinc-300">

@@ -1,5 +1,7 @@
 "use client";
 
+import "@xyflow/react/dist/style.css";
+
 import {
   ReactFlow,
   useNodesInitialized,
@@ -124,6 +126,12 @@ export function ExecutionGraphPanel({
           <ReactFlow
             defaultEdgeOptions={{ selectable: false, focusable: false }}
             edges={edges}
+            fitView
+            fitViewOptions={{
+              padding: zoomBounds.padding,
+              maxZoom: zoomBounds.maxZoom,
+              minZoom: zoomBounds.minZoom,
+            }}
             maxZoom={zoomBounds.maxZoom}
             minZoom={zoomBounds.minZoom}
             nodes={nodes}
@@ -163,7 +171,7 @@ export function ExecutionGraphPanel({
 
               <div className="mt-5 space-y-5">
                 <div className="border-t border-border pt-5">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                     Node name
                   </div>
                   <p className="mt-2 font-mono text-xs uppercase tracking-[0.16em] text-zinc-300">
@@ -172,7 +180,7 @@ export function ExecutionGraphPanel({
                 </div>
 
                 <div className="border-t border-border pt-5">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                     Purpose
                   </div>
                   <p className="mt-2 text-sm leading-7 text-zinc-300">
@@ -181,7 +189,7 @@ export function ExecutionGraphPanel({
                 </div>
 
                 <div className="border-t border-border pt-5">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                     Output summary
                   </div>
                   <p className="mt-2 text-sm leading-7 text-zinc-300">
@@ -190,7 +198,7 @@ export function ExecutionGraphPanel({
                 </div>
 
                 <div className="border-t border-border pt-5">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                     Timestamp
                   </div>
                   <p className="mt-2 text-sm text-zinc-300">

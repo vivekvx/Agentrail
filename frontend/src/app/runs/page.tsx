@@ -29,21 +29,21 @@ function RunRow({ run }: { run: RunDetail }) {
       href={`/runs/${run.id}`}
       className="grid grid-cols-[48px_1fr_160px_140px_100px] gap-4 items-center border-t border-[var(--border)] px-6 py-4 hover:bg-[rgba(16,185,129,0.03)] transition group"
     >
-      <span className="font-mono text-[11px] text-zinc-600">#{run.id}</span>
+      <span className="font-mono text-[11px] text-zinc-500">#{run.id}</span>
       <div className="min-w-0">
         <div className="text-sm font-medium text-zinc-100 truncate group-hover:text-white">
           {run.user_task || "—"}
         </div>
-        <div className="font-mono text-[10px] text-zinc-600 truncate mt-0.5">{repoLabel}</div>
+        <div className="font-mono text-[10px] text-zinc-500 truncate mt-0.5">{repoLabel}</div>
       </div>
-      <span className="font-mono text-[10px] text-zinc-600 truncate">{date}</span>
+      <span className="font-mono text-[10px] text-zinc-500 truncate">{date}</span>
       <span
         className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] w-fit ${colorClass}`}
       >
         <span className="size-1 rounded-full bg-current" />
         {run.status.replace(/_/g, " ")}
       </span>
-      <span className="font-mono text-[10px] text-zinc-700 text-right">
+      <span className="font-mono text-[10px] text-zinc-500 text-right">
         {run.risk_score?.level ? `${run.risk_score.level} risk` : "—"}
       </span>
     </Link>
@@ -67,7 +67,7 @@ export default async function RunsPage() {
 
       <section className="mt-6">
         {runs.length === 0 ? (
-          <div className="py-16 text-center text-sm text-zinc-600">
+          <div className="py-16 text-center text-sm text-zinc-500">
             No runs yet. Create one from the{" "}
             <Link href="/" className="text-[var(--accent)] hover:underline">
               console
@@ -76,7 +76,7 @@ export default async function RunsPage() {
           </div>
         ) : (
           <div>
-            <div className="grid grid-cols-[48px_1fr_160px_140px_100px] gap-4 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-600">
+            <div className="grid grid-cols-[48px_1fr_160px_140px_100px] gap-4 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
               <span>ID</span>
               <span>Task</span>
               <span>Created</span>

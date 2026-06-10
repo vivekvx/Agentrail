@@ -16,13 +16,13 @@ export default function WorkflowPage() {
     <SiteChrome>
       <section className="border-b border-border py-14">
         <div className="max-w-4xl">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
             Workflow
           </p>
           <h1 className="mt-4 text-5xl font-semibold tracking-tight text-zinc-100 sm:text-6xl">
             Agent runs with gates, evidence, and visible state.
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-500">
+          <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-400">
             Each run moves from repository intake to review-ready output. The
             system favors traceability over silent autonomy.
           </p>
@@ -32,11 +32,11 @@ export default function WorkflowPage() {
       <section className="grid gap-px bg-border py-px lg:grid-cols-4">
         {steps.map(([number, title, body]) => (
           <article className="min-h-56 bg-background p-6" key={title}>
-            <div className="font-mono text-[11px] text-zinc-600">{number}</div>
+            <div className="font-mono text-[11px] text-zinc-500">{number}</div>
             <h2 className="mt-6 text-xl font-semibold tracking-tight text-zinc-100">
               {title}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-zinc-500">{body}</p>
+            <p className="mt-3 text-sm leading-7 text-zinc-400">{body}</p>
           </article>
         ))}
       </section>

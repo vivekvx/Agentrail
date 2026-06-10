@@ -47,7 +47,7 @@ export function EvalScoreCard({ result }: { result: EvalResult }) {
           <Badge variant={result.passed ? "success" : "danger"} dot>
             {result.passed ? "Pass" : "Fail"}
           </Badge>
-          <span className="font-mono text-[10px] text-zinc-600">
+          <span className="font-mono text-[10px] text-zinc-500">
             {formatDate(result.run_at)}
           </span>
         </div>

@@ -198,7 +198,7 @@ function RunDetailShellInner({ runId }: { runId: number }) {
           {run ? (
             <>
               <div className="mb-5 flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                   Run {run.id}
                 </span>
                 <StatusBadge status={run.status} />
@@ -221,7 +221,7 @@ function RunDetailShellInner({ runId }: { runId: number }) {
                 </span>
                 {run.expected_behavior ? <span>{run.expected_behavior}</span> : null}
                 {run.test_command ? (
-                  <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                     {run.test_command}
                   </span>
                 ) : null}

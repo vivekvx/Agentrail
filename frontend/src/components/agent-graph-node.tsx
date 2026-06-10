@@ -14,7 +14,7 @@ const statusLabel: Record<WorkflowNodeStatus, string> = {
 };
 
 const statusClasses: Record<WorkflowNodeStatus, string> = {
-  pending: "border-border bg-surface text-zinc-600",
+  pending: "border-border bg-surface text-zinc-500",
   running: "border-zinc-500 bg-[#151515] text-zinc-100",
   completed: "border-zinc-700 bg-[#131313] text-zinc-200",
   approved: "border-zinc-300 bg-[#141414] text-zinc-100",
@@ -53,7 +53,7 @@ export function AgentGraphNode({
       />
 
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
           {String(data.order).padStart(2, "0")}
         </div>
         <div className={`rounded-sm border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] ${statusClasses[data.status]}`}>
@@ -63,9 +63,11 @@ export function AgentGraphNode({
 
       <div>
         <div className={`${titleClass} font-medium text-zinc-100`}>{data.title}</div>
-        <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
-          {data.subtitle}
-        </div>
+        {data.subtitle.toLowerCase() !== data.title.toLowerCase() ? (
+          <div className="mt-2 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+            {data.subtitle}
+          </div>
+        ) : null}
       </div>
 
       <Handle

@@ -49,7 +49,7 @@ export function ApprovalCard({
             {approvalStatus ?? "awaiting decision"}
           </Badge>
           {evidenceCount !== null ? (
-            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
               {evidenceCount} evidence item(s)
             </span>
           ) : null}

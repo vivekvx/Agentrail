@@ -159,7 +159,7 @@ export function AgentTimeline({
                         <h3 className="text-sm font-medium text-zinc-100">
                           {event.title}
                         </h3>
-                        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+                        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
                           {event.event_type}
                         </span>
                       </div>
@@ -207,7 +207,7 @@ export function AgentTimeline({
                           className="font-mono text-[11px] leading-5 text-zinc-500"
                           key={key}
                         >
-                          <span className="text-zinc-700">{key}</span>
+                          <span className="text-zinc-500">{key}</span>
                           {" = "}
                           {typeof value === "string"
                             ? value

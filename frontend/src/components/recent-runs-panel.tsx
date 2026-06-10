@@ -111,12 +111,12 @@ export function RecentRunsPanel() {
                     <p className="line-clamp-2 text-sm leading-6 text-zinc-100">
                       {run.user_task}
                     </p>
-                    <p className="mt-3 truncate font-mono text-[11px] text-zinc-600">
+                    <p className="mt-3 truncate font-mono text-[11px] text-zinc-500">
                       {run.repo_url ?? run.repo_path ?? "Repository path pending import"}
                     </p>
                     <p className="mt-2 text-xs text-zinc-500">{summaryLine(run)}</p>
                   </div>
-                  <ArrowUpRight className="mt-1 size-4 shrink-0 text-zinc-700 transition-colors group-hover:text-zinc-300" />
+                  <ArrowUpRight className="mt-1 size-4 shrink-0 text-zinc-500 transition-colors group-hover:text-zinc-300" />
                 </div>
               </Link>
 

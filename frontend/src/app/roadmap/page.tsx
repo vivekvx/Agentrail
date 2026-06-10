@@ -24,7 +24,7 @@ export default function RoadmapPage() {
   return (
     <SiteChrome>
       <section className="border-b border-border py-14">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
           Roadmap
         </p>
         <h1 className="mt-4 max-w-4xl text-5xl font-semibold tracking-tight text-zinc-100 sm:text-6xl">
@@ -43,14 +43,14 @@ export default function RoadmapPage() {
 function RoadmapColumn({ items, label }: { items: string[]; label: string }) {
   return (
     <div className="bg-background p-6">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-600">
+      <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
         {label}
       </h2>
       <div className="mt-6 divide-y divide-border">
         {items.map((item) => (
           <div className="flex items-center justify-between gap-4 py-4" key={item}>
             <span className="text-sm text-zinc-200">{item}</span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-600">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
               {label}
             </span>
           </div>

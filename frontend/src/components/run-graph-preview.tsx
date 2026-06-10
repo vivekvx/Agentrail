@@ -6,7 +6,7 @@ import type { RunDetail, RunEvent } from "@/lib/types";
 
 function previewClass(status: string, isSkipped: boolean) {
   if (isSkipped) {
-    return "border-[#1f1f1f] bg-[#0f0f0f] text-zinc-700";
+    return "border-[#1f1f1f] bg-[#0f0f0f] text-zinc-500";
   }
 
   switch (status) {
@@ -48,7 +48,7 @@ export function RunGraphPreview({
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
           Open execution graph
         </span>
-        <ArrowUpRight className="size-3.5 text-zinc-600" />
+        <ArrowUpRight className="size-3.5 text-zinc-500" />
       </div>
 
       <div className="grid grid-cols-5 gap-2">

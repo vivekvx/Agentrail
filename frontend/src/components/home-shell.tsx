@@ -23,7 +23,7 @@ export function HomeShell() {
             <h1 className="max-w-3xl text-balance text-[2.75rem] font-semibold tracking-tight text-zinc-50 leading-[1.1] sm:text-5xl lg:text-6xl">
               Evidence-backed bug fixes, with human approval.
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-8 text-zinc-500">
+            <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
               Agentrail traces root cause from repository source, previews a
               patch, pauses for your approval, runs tests, scores risk, and
               exports a PR-ready report.
@@ -45,12 +45,12 @@ export function HomeShell() {
           {/* Workflow map */}
           <div className="border border-[var(--border)] bg-[var(--panel)] rounded-sm overflow-hidden">
             <div className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
-              <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-zinc-600">
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-zinc-500">
                 Agent workflow
               </span>
-              <span className="inline-flex items-center gap-1 font-mono text-[10.5px] text-zinc-700">
+              <span className="inline-flex items-center gap-1 font-mono text-[10.5px] text-zinc-500">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                10-stage pipeline
+                11-node pipeline
               </span>
             </div>
             <div className="grid grid-cols-2 gap-px bg-[var(--border)]">
@@ -59,7 +59,7 @@ export function HomeShell() {
                   className="bg-[var(--panel)] px-4 py-3 group hover:bg-[rgba(16,185,129,0.04)] transition"
                   key={stage.id}
                 >
-                  <div className="font-mono text-[10px] text-zinc-700 group-hover:text-emerald-900 transition">
+                  <div className="font-mono text-[10px] text-zinc-500 group-hover:text-emerald-400 transition">
                     {stage.desc}
                   </div>
                   <div className="mt-1 font-mono text-[11.5px] font-semibold uppercase tracking-[0.14em] text-zinc-300 group-hover:text-zinc-100 transition">
@@ -84,7 +84,7 @@ export function HomeShell() {
             <h2 className="text-sm font-semibold tracking-tight text-zinc-100">
               {title}
             </h2>
-            <p className="mt-1.5 text-sm leading-6 text-zinc-600">{body}</p>
+            <p className="mt-1.5 text-sm leading-6 text-zinc-400">{body}</p>
           </div>
         ))}
       </section>

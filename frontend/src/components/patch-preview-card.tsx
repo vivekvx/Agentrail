@@ -100,7 +100,7 @@ export function PatchPreviewCard({
             })}
           </pre>
         ) : (
-          <pre className="scrollbar-thin max-h-[34rem] overflow-auto p-5 font-mono text-xs leading-6 text-zinc-600">
+          <pre className="scrollbar-thin max-h-[34rem] overflow-auto p-5 font-mono text-xs leading-6 text-zinc-500">
             No patch preview available.
           </pre>
         )}
