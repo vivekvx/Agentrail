@@ -31,8 +31,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <main className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-sm rounded-sm border border-[var(--border)] bg-[rgba(10,10,10,0.55)] p-8 backdrop-blur-md">
         <div className="mb-8 text-center">
           <Link
             href="/"

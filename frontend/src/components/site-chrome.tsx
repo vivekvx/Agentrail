@@ -51,7 +51,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-[rgba(7,7,8,0.66)] backdrop-blur-[2px]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 py-5 sm:px-8">
         <header className="sticky top-0 z-20 -mx-5 border-b border-[var(--border)] bg-[rgba(8,8,8,0.94)] px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8">
           <div className="flex items-center justify-between gap-4">

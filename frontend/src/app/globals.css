@@ -55,7 +55,8 @@ html {
 }
 
 body {
-  background: var(--background);
+  /* No background here: the fixed WebGL canvas sits behind content and a
+     body background would paint over it. html carries the solid fallback. */
   color: var(--foreground);
   font-family: var(--font-sans);
   letter-spacing: 0;

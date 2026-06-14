@@ -1,6 +1,11 @@
+"use client";
+
+import { useRef } from "react";
+
 import { CreateRunForm } from "@/components/create-run-form";
 import { RecentRunsPanel } from "@/components/recent-runs-panel";
 import { SiteChrome } from "@/components/site-chrome";
+import { useHeroIntro, useRevealOnScroll } from "@/lib/motion";
 
 const workflowStages = [
   { id: "scan", label: "Scan", desc: "Stack + files" },
@@ -14,21 +19,27 @@ const workflowStages = [
 ];
 
 export function HomeShell() {
+  const heroRef = useRef<HTMLElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  useHeroIntro(heroRef);
+  useRevealOnScroll(pageRef);
+
   return (
     <SiteChrome>
       {/* Hero */}
-      <section className="border-b border-[var(--border)] py-16 sm:py-20">
+      <section ref={heroRef} className="border-b border-[var(--border)] py-16 sm:py-20">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.2fr)_400px] lg:items-center">
           <div>
-            <h1 className="max-w-3xl text-balance text-[2.75rem] font-semibold tracking-tight text-zinc-50 leading-[1.1] sm:text-5xl lg:text-6xl">
+            <h1 data-hero className="max-w-3xl text-balance text-[2.75rem] font-semibold tracking-tight text-zinc-50 leading-[1.1] sm:text-5xl lg:text-6xl">
               Evidence-backed bug fixes, with human approval.
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
+            <p data-hero className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
               Agentrail traces root cause from repository source, previews a
               patch, pauses for your approval, runs tests, scores risk, and
               exports a PR-ready report.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div data-hero className="mt-8 flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--success-border)] bg-[var(--success-bg)] px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-[var(--success-text)]">
                 <span className="size-1.5 rounded-full bg-[var(--success-text)]" />
                 Patch-preview only
@@ -43,7 +54,7 @@ export function HomeShell() {
           </div>
 
           {/* Workflow map */}
-          <div className="border border-[var(--border)] bg-[var(--panel)] rounded-sm overflow-hidden">
+          <div data-hero className="border border-[var(--border)] bg-[var(--panel)] rounded-sm overflow-hidden">
             <div className="border-b border-[var(--border)] px-4 py-3 flex items-center justify-between">
               <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-zinc-500">
                 Agent workflow
@@ -72,28 +83,34 @@ export function HomeShell() {
         </div>
       </section>
 
-      {/* Safety guarantees strip */}
-      <section className="grid gap-x-10 gap-y-6 border-b border-[var(--border)] py-8 sm:grid-cols-3">
-        {[
-          ["Patch preview only", "No direct repository mutation. Review before applying."],
-          ["Approval gate", "LangGraph interrupt pauses before verification continues."],
-          ["Copy-ready PR draft", "Manual export only. No hidden GitHub writes."],
-        ].map(([title, body]) => (
-          <div key={title}>
-            <div className="size-1.5 rounded-full bg-[var(--accent)] mb-4" />
-            <h2 className="text-sm font-semibold tracking-tight text-zinc-100">
-              {title}
-            </h2>
-            <p className="mt-1.5 text-sm leading-6 text-zinc-400">{body}</p>
-          </div>
-        ))}
-      </section>
+      <div ref={pageRef} className="contents">
+        {/* Safety guarantees strip */}
+        <section className="grid gap-x-10 gap-y-6 border-b border-[var(--border)] py-8 sm:grid-cols-3">
+          {[
+            ["Patch preview only", "No direct repository mutation. Review before applying."],
+            ["Approval gate", "LangGraph interrupt pauses before verification continues."],
+            ["Copy-ready PR draft", "Manual export only. No hidden GitHub writes."],
+          ].map(([title, body]) => (
+            <div data-reveal key={title}>
+              <div className="size-1.5 rounded-full bg-[var(--accent)] mb-4" />
+              <h2 className="text-sm font-semibold tracking-tight text-zinc-100">
+                {title}
+              </h2>
+              <p className="mt-1.5 text-sm leading-6 text-zinc-400">{body}</p>
+            </div>
+          ))}
+        </section>
 
-      {/* Run creation + recent runs — right rail matches hero's 400px column */}
-      <section className="grid flex-1 gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-        <CreateRunForm />
-        <RecentRunsPanel />
-      </section>
+        {/* Run creation + recent runs — right rail matches hero's 400px column */}
+        <section className="grid flex-1 gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+          <div data-reveal>
+            <CreateRunForm />
+          </div>
+          <div data-reveal>
+            <RecentRunsPanel />
+          </div>
+        </section>
+      </div>
     </SiteChrome>
   );
 }
