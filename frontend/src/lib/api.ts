@@ -1,1 +1,58 @@
 export const API_PREFIX = "/api/agentrail";
+
+export type TreeNode = {
+  name: string;
+  type: "dir" | "file";
+  lang?: string | null;
+  children?: TreeNode[];
+};
+
+export type RepoSummary = {
+  id: number;
+  url: string;
+  name: string;
+  status: "pending" | "scanning" | "ready" | "error";
+  default_branch: string | null;
+  file_count: number;
+  created_at: string;
+};
+
+export type RepoDetail = RepoSummary & {
+  languages: { name: string; count: number }[];
+  tree: TreeNode | null;
+  error_message: string | null;
+};
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_PREFIX}${path}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    let detail = `Request failed (${res.status})`;
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      // keep generic detail
+    }
+    throw new Error(detail);
+  }
+  return (await res.json()) as T;
+}
+
+export function importRepo(url: string) {
+  return request<RepoSummary>("/repos", {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+}
+
+export function getRepo(id: number | string) {
+  return request<RepoDetail>(`/repos/${id}`);
+}
+
+export function listRepos(limit = 20) {
+  return request<RepoSummary[]>(`/repos?limit=${limit}`);
+}

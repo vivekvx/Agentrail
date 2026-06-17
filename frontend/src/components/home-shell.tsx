@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   GitBranch,
@@ -81,14 +82,13 @@ export function HomeShell() {
             your questions, all grounded in the actual code.
           </p>
           <div data-hero className="mt-8 flex flex-wrap items-center gap-3">
-            <a
-              href="https://github.com/vivekvx/Agentrail"
-              target="_blank"
+            <Link
+              href="/explore"
               className="inline-flex h-11 items-center gap-2 rounded-md bg-[var(--primary)] px-5 text-sm font-semibold text-[var(--on-primary)] hover:bg-[var(--primary-active)] active:translate-y-px"
             >
               Start exploring
               <ArrowRight className="size-4" strokeWidth={2} />
-            </a>
+            </Link>
             <a
               href="#how"
               className="inline-flex h-11 items-center rounded-md border border-[var(--hairline)] px-5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface-card)]"
@@ -250,14 +250,13 @@ export function HomeShell() {
             <p className="mx-auto mt-4 max-w-md text-[15px] leading-6 text-[var(--body)]">
               The fastest way to understand a codebase you did not write.
             </p>
-            <a
-              href="https://github.com/vivekvx/Agentrail"
-              target="_blank"
+            <Link
+              href="/explore"
               className="mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-[var(--primary)] px-6 text-sm font-semibold text-[var(--on-primary)] hover:bg-[var(--primary-active)] active:translate-y-px"
             >
               Start exploring
               <ArrowRight className="size-4" strokeWidth={2} />
-            </a>
+            </Link>
           </div>
         </section>
       </div>

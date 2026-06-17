@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
 
+    # Repo scanning
+    repo_workspace_dir: str = "./data/repos"
+    git_clone_timeout_seconds: int = 60
+    max_repo_files: int = 20000
+
     @field_validator("secret_key")
     @classmethod
     def _require_strong_key(cls, v: str) -> str:

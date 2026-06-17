@@ -27,8 +27,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             </Link>
             <ThemeToggle />
             <Link
-              href="https://github.com/vivekvx/Agentrail"
-              target="_blank"
+              href="/explore"
               className="inline-flex h-9 items-center rounded-md bg-[var(--primary)] px-4 text-[13px] font-semibold text-[var(--on-primary)] hover:bg-[var(--primary-active)] active:translate-y-px"
             >
               Get started
