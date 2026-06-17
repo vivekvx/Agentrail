@@ -44,35 +44,3 @@ def test_login_unknown_email_401(client: TestClient) -> None:
     assert res.status_code == 401
 
 
-def test_authenticated_user_sees_only_own_runs(client: TestClient, tmp_path) -> None:
-    token_a = _register(client, "a@test.com", "pw")
-    token_b = _register(client, "b@test.com", "pw")
-
-    client.post(
-        "/api/runs",
-        json={"repo_path": str(tmp_path), "user_task": "fix bug"},
-        headers=_auth_headers(token_a),
-    )
-
-    runs_a = client.get("/api/runs", headers=_auth_headers(token_a)).json()
-    assert len(runs_a) == 1
-
-    runs_b = client.get("/api/runs", headers=_auth_headers(token_b)).json()
-    assert len(runs_b) == 0
-
-
-def test_unauthenticated_list_returns_all_runs(client: TestClient, tmp_path) -> None:
-    token = _register(client)
-    client.post(
-        "/api/runs",
-        json={"repo_path": str(tmp_path), "user_task": "fix bug"},
-        headers=_auth_headers(token),
-    )
-    res = client.get("/api/runs")
-    assert res.status_code == 200
-    assert len(res.json()) >= 1
-
-
-def test_invalid_token_treated_as_unauthenticated(client: TestClient) -> None:
-    res = client.get("/api/runs", headers={"Authorization": "Bearer garbage"})
-    assert res.status_code == 200

@@ -1,200 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #080808;
-  --foreground: #f4f4f5;
-  --surface: #0f0f0f;
-  --border: #1f1f1f;
-  --muted: #71717a;
-  --muted-strong: #d4d4d8;
-  --panel: #0c0c0c;
+/* ============================================================
+   Agentrail — Cal.com-clean design system
+   Dual theme. Dark is default; [data-theme="light"] flips tokens.
+   Display = Inter 600, negative tracking (Cal Sans substitute).
+   ============================================================ */
 
-  /* Accent - emerald (verified / safe / approved) */
-  --accent: #10b981;
-  --accent-dim: rgba(16, 185, 129, 0.10);
-  --accent-border: rgba(16, 185, 129, 0.24);
+:root,
+[data-theme="dark"] {
+  --canvas: #0a0a0b;
+  --surface-soft: #111113;
+  --surface-card: #151517;
+  --surface-strong: #1d1d20;
+  --surface-invert: #fafafa;
 
-  /* Semantic states */
-  --success-text: #34d399;
-  --success-bg: rgba(52, 211, 153, 0.07);
-  --success-border: rgba(52, 211, 153, 0.20);
+  --ink: #fafafa;
+  --body: #c7c7cc;
+  --muted: #8a8a91;
+  --muted-soft: #6a6a70;
 
-  --warning-text: #fbbf24;
-  --warning-bg: rgba(251, 191, 36, 0.07);
-  --warning-border: rgba(251, 191, 36, 0.20);
+  --hairline: #232327;
+  --hairline-soft: #1a1a1d;
 
-  --danger-text: #f87171;
-  --danger-bg: rgba(248, 113, 113, 0.07);
-  --danger-border: rgba(248, 113, 113, 0.20);
+  --on-primary: #0a0a0b;
+  --on-invert: #0a0a0b;
 
-  --neutral-text: #a1a1aa;
-  --neutral-bg: #111111;
-  --neutral-border: #2a2a2a;
+  --accent: #34d399;
+  --accent-soft: rgba(52, 211, 153, 0.12);
+  --accent-border: rgba(52, 211, 153, 0.28);
+
+  --primary: #fafafa;
+  --primary-active: #e4e4e7;
+}
+
+[data-theme="light"] {
+  --canvas: #ffffff;
+  --surface-soft: #f8f9fa;
+  --surface-card: #f5f5f5;
+  --surface-strong: #e5e7eb;
+  --surface-invert: #101010;
+
+  --ink: #111111;
+  --body: #374151;
+  --muted: #6b7280;
+  --muted-soft: #898989;
+
+  --hairline: #e5e7eb;
+  --hairline-soft: #f3f4f6;
+
+  --on-primary: #ffffff;
+  --on-invert: #ffffff;
+
+  --accent: #059669;
+  --accent-soft: rgba(5, 150, 105, 0.08);
+  --accent-border: rgba(5, 150, 105, 0.22);
+
+  --primary: #111111;
+  --primary-active: #242424;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
+  --color-canvas: var(--canvas);
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-card: var(--surface-card);
+  --color-surface-strong: var(--surface-strong);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
   --color-muted: var(--muted);
-  --color-muted-strong: var(--muted-strong);
-  --color-panel: var(--panel);
+  --color-hairline: var(--hairline);
   --color-accent: var(--accent);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --color-primary: var(--primary);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 * {
-  border-color: var(--border);
   box-sizing: border-box;
 }
 
 html {
-  background: var(--background);
+  background: var(--canvas);
+  scroll-behavior: smooth;
 }
 
 body {
-  /* No background here: the fixed WebGL canvas sits behind content and a
-     body background would paint over it. html carries the solid fallback. */
-  color: var(--foreground);
+  background: var(--canvas);
+  color: var(--body);
   font-family: var(--font-sans);
-  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
-/* ── React Flow ─────────────────────────────── */
-.react-flow {
-  background: #0c0c0c;
+/* Cal-Sans-substitute display: Inter 600 + negative tracking */
+.display {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  line-height: 1.05;
 }
 
-.react-flow__renderer {
-  background: #0c0c0c;
-}
-
-.react-flow__node {
-  cursor: pointer;
-}
-
-.react-flow__edge-path {
-  stroke-linecap: square;
-}
-
-.react-flow__handle {
-  width: 0;
-  height: 0;
-  min-width: 0;
-  min-height: 0;
-  border: 0;
-  background: transparent;
-}
-
-.react-flow__controls,
-.react-flow__minimap,
-.react-flow__attribution {
-  display: none;
-}
-
-/* ── Transitions ────────────────────────────── */
-a,
-button,
-input,
-textarea {
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-::selection {
-  background: #1a3a2e;
-  color: #a7f3d0;
-}
-
-/* ── Scrollbar ──────────────────────────────── */
-.scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 999px;
-}
-
-/* ── Type utilities ─────────────────────────── */
-.panel-label {
+.eyebrow {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.panel-value {
-  color: var(--foreground);
+a,
+button {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
-.chrome-divider {
-  border-top: 1px solid var(--border);
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-/* ── Active nav state ───────────────────────── */
-.nav-active {
-  color: #f4f4f5;
-  background: rgba(16, 185, 129, 0.08);
-}
-
-/* ── Markdown report ────────────────────────── */
-.markdown-report h1,
-.markdown-report h2,
-.markdown-report h3 {
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.markdown-report h1 {
-  font-size: 1.5rem;
-}
-
-.markdown-report h2 {
-  margin-top: 1.5rem;
-  font-size: 1rem;
-}
-
-.markdown-report p,
-.markdown-report li {
-  color: var(--muted-strong);
-}
-
-.markdown-report ul {
-  list-style: disc;
-  padding-left: 1.25rem;
-}
-
-.markdown-report code {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-}
-
-.markdown-report pre {
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  background: #0a0a0a;
-  padding: 1rem;
-  border-radius: 4px;
-}
-
-.markdown-report blockquote {
-  border-left: 2px solid rgba(16, 185, 129, 0.24);
-  padding-left: 1rem;
-  color: var(--muted);
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

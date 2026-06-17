@@ -40,25 +40,27 @@ export function useRevealOnScroll(
 
     const ctx = gsap.context(() => {
       targets.forEach((el) => {
-        gsap.fromTo(
-          el,
-          { opacity: 0, y: 24 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.7,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: el,
-              start: "top 88%",
-              toggleActions: "play none none none",
-            },
+        gsap.from(el, {
+          opacity: 0,
+          y: 24,
+          duration: 0.7,
+          ease: "power3.out",
+          immediateRender: false,
+          overwrite: "auto",
+          scrollTrigger: {
+            trigger: el,
+            start: "top 88%",
+            toggleActions: "play none none none",
           },
-        );
+        });
       });
     }, scope);
 
-    return () => ctx.revert();
+    // On unmount/StrictMode-remount, never leave content stuck mid-fade.
+    return () => {
+      ctx.revert();
+      gsap.set(targets, { opacity: 1, y: 0, clearProps: "transform" });
+    };
   }, [scopeRef, selector]);
 }
 
@@ -77,20 +79,24 @@ export function useHeroIntro(
 
     ensureRegistered();
 
+    const targets = scope.querySelectorAll(selector);
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        scope.querySelectorAll(selector),
-        { opacity: 0, y: 28 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.85,
-          ease: "power3.out",
-          stagger: 0.09,
-        },
-      );
+      // `from` + immediateRender:false => content stays visible until the
+      // tween actually ticks. If rAF is throttled, nothing hides.
+      gsap.from(targets, {
+        opacity: 0,
+        y: 28,
+        duration: 0.85,
+        ease: "power3.out",
+        stagger: 0.09,
+        immediateRender: false,
+        overwrite: "auto",
+      });
     }, scope);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      gsap.set(targets, { opacity: 1, y: 0, clearProps: "transform" });
+    };
   }, [scopeRef, selector]);
 }

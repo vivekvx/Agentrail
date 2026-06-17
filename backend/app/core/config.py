@@ -2,37 +2,14 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import field_validator, model_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEV_SECRET = "dev-only-change-in-production"
 
 
 class Settings(BaseSettings):
-    # Use Postgres in production: postgresql+psycopg2://user:pass@host/db
     database_url: str = "sqlite:///./agentrail.db"
-    openai_api_key: str | None = None
-    openai_base_url: str | None = None
-    openai_model: str = "gpt-4.1-mini"
-    llm_root_cause_enabled: bool = False
-    llm_fix_strategy_enabled: bool = False
-    llm_patch_enabled: bool = False
-    llm_timeout_seconds: int = 30
-    repo_workspace_dir: str = "./data/repos"
-    github_import_enabled: bool = True
-    github_issue_import_enabled: bool = True
-    github_api_timeout_seconds: int = 30
-    git_clone_timeout_seconds: int = 60
-    max_repo_size_mb: int = 100
-    github_token: str | None = None
-    max_issue_body_chars: int = 12000
-    e2b_enabled: bool = False
-    e2b_api_key: str | None = None
-    e2b_template: str | None = None
-    e2b_timeout_seconds: int = 120
-    e2b_run_tests_after_approval: bool = False
-    sandbox_runner_provider: str = "local"
-    max_sandbox_upload_mb: int = 50
     secret_key: str = _DEV_SECRET
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
@@ -49,21 +26,6 @@ class Settings(BaseSettings):
         if len(v) < 16:
             raise ValueError("SECRET_KEY must be at least 16 characters")
         return v
-
-    @model_validator(mode="after")
-    def _auto_enable_llm_nodes(self) -> "Settings":
-        # When an API key is configured, LLM analysis is what the user wants:
-        # enable any LLM flag the user did not explicitly set. Explicit
-        # LLM_*_ENABLED=false in env/.env always wins.
-        if (self.openai_api_key or "").strip():
-            for flag in (
-                "llm_root_cause_enabled",
-                "llm_fix_strategy_enabled",
-                "llm_patch_enabled",
-            ):
-                if flag not in self.model_fields_set:
-                    object.__setattr__(self, flag, True)
-        return self
 
     @field_validator("algorithm")
     @classmethod
