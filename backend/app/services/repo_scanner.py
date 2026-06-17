@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -14,6 +15,8 @@ from pathlib import Path
 from app.core.config import get_settings
 from app.db.models import Repo
 from app.db.session import SessionLocal
+
+logger = logging.getLogger("agentrail.repo_scanner")
 
 # Bound concurrent clones so a burst of imports cannot exhaust CPU/disk.
 _scan_semaphore = threading.BoundedSemaphore(get_settings().max_concurrent_scans)
@@ -187,7 +190,10 @@ def scan_repo(repo_id: int) -> None:
             timeout=settings.git_clone_timeout_seconds,
         )
         if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip()[:500] or "git clone failed")
+            # Log full stderr server-side; never surface it to the client
+            # (it can leak local paths / internal detail).
+            logger.warning("git clone failed for repo %s: %s", repo_id, result.stderr.strip())
+            raise RuntimeError("Could not clone the repository")
 
         branch = subprocess.run(
             ["git", "-C", str(workspace), "rev-parse", "--abbrev-ref", "HEAD"],
@@ -213,8 +219,9 @@ def scan_repo(repo_id: int) -> None:
         _mark_error(db, repo_id, "Clone timed out")
     except (RepoUrlError, RuntimeError) as exc:
         _mark_error(db, repo_id, str(exc))
-    except Exception as exc:  # noqa: BLE001 - surface any failure to the row
-        _mark_error(db, repo_id, f"Scan failed: {exc}")
+    except Exception:  # noqa: BLE001 - record a generic failure, log the detail
+        logger.exception("scan failed for repo %s", repo_id)
+        _mark_error(db, repo_id, "Scan failed")
     finally:
         if acquired:
             _scan_semaphore.release()

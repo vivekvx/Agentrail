@@ -7,11 +7,21 @@ const API_BASE_URL =
 
 export const dynamic = "force-dynamic";
 
+// Only forward to known backend surfaces. Prevents the proxy from being used
+// as an open relay to arbitrary backend paths.
+const ALLOWED_PREFIXES = ["auth", "repos"];
+
 async function proxyRequest(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
+
+  // Reject path traversal and anything outside the allowlisted surfaces.
+  if (path.some((seg) => seg === "..") || !ALLOWED_PREFIXES.includes(path[0])) {
+    return NextResponse.json({ detail: "Not found" }, { status: 404 });
+  }
+
   const joinedPath = path.join("/");
   const targetUrl = new URL(`${API_BASE_URL}/${joinedPath}`);
   request.nextUrl.searchParams.forEach((value, key) => {
