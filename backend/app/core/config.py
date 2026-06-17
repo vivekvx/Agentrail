@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     repo_workspace_dir: str = "./data/repos"
     git_clone_timeout_seconds: int = 60
     max_repo_files: int = 20000
+    # DoS hardening
+    max_repo_size_kb: int = 200_000  # reject repos larger than ~200 MB before clone
+    max_concurrent_scans: int = 2  # cap simultaneous clones
+    scan_rate_limit: str = "10/hour"  # per-IP limit on imports
+    github_api_timeout_seconds: int = 10
 
     @field_validator("secret_key")
     @classmethod

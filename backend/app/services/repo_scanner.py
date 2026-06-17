@@ -5,12 +5,18 @@ import os
 import re
 import shutil
 import subprocess
+import threading
+import urllib.error
+import urllib.request
 from collections import Counter
 from pathlib import Path
 
 from app.core.config import get_settings
 from app.db.models import Repo
 from app.db.session import SessionLocal
+
+# Bound concurrent clones so a burst of imports cannot exhaust CPU/disk.
+_scan_semaphore = threading.BoundedSemaphore(get_settings().max_concurrent_scans)
 
 # Map file extensions to language labels for stack detection.
 _EXT_LANG = {
@@ -78,6 +84,37 @@ def parse_github_url(url: str) -> tuple[str, str]:
     return f"https://github.com/{owner}/{repo}.git", f"{owner}/{repo}"
 
 
+def fetch_repo_size_kb(name: str) -> int:
+    """Look up a repo's size (KB) via the GitHub API.
+
+    Existence + size pre-check so oversized or missing repos are rejected
+    before any clone runs. Raises RepoUrlError on 404 / unexpected response.
+    """
+    settings = get_settings()
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{name}",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "agentrail"},
+    )
+    try:
+        with urllib.request.urlopen(
+            req, timeout=settings.github_api_timeout_seconds
+        ) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise RepoUrlError("Repository not found or not public")
+        if exc.code == 403:
+            raise RepoUrlError("GitHub API rate limit reached; try again later")
+        raise RepoUrlError(f"GitHub API error ({exc.code})")
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        raise RepoUrlError("Could not reach GitHub to verify the repository")
+
+    size = data.get("size")
+    if not isinstance(size, int):
+        raise RepoUrlError("Unexpected GitHub API response")
+    return size
+
+
 def _workspace_for(repo_id: int) -> Path:
     settings = get_settings()
     root = Path(settings.repo_workspace_dir).resolve()
@@ -122,10 +159,18 @@ def scan_repo(repo_id: int) -> None:
     """
     db = SessionLocal()
     workspace = _workspace_for(repo_id)
+    acquired = False
     try:
         repo = db.get(Repo, repo_id)
         if repo is None:
             return
+
+        settings = get_settings()
+        acquired = _scan_semaphore.acquire(timeout=settings.git_clone_timeout_seconds)
+        if not acquired:
+            _mark_error(db, repo_id, "Server busy; please retry shortly")
+            return
+
         repo.status = "scanning"
         db.commit()
 
@@ -171,6 +216,8 @@ def scan_repo(repo_id: int) -> None:
     except Exception as exc:  # noqa: BLE001 - surface any failure to the row
         _mark_error(db, repo_id, f"Scan failed: {exc}")
     finally:
+        if acquired:
+            _scan_semaphore.release()
         shutil.rmtree(workspace, ignore_errors=True)
         db.close()
 

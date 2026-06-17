@@ -2,14 +2,21 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
+from app.core.limiter import limiter
 from app.db.models import Repo
 from app.db.session import get_db
-from app.services.repo_scanner import RepoUrlError, parse_github_url, scan_repo
+from app.services.repo_scanner import (
+    RepoUrlError,
+    fetch_repo_size_kb,
+    parse_github_url,
+    scan_repo,
+)
 
 router = APIRouter(prefix="/api/repos", tags=["repos"])
 
@@ -56,15 +63,27 @@ def _detail(repo: Repo) -> RepoDetail:
 
 
 @router.post("", response_model=RepoSummary, status_code=status.HTTP_201_CREATED)
+@limiter.limit(get_settings().scan_rate_limit)
 def import_repo(
+    request: Request,
     body: ImportRequest,
     background: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> RepoSummary:
+    settings = get_settings()
     try:
         _, name = parse_github_url(body.url)
+        # Pre-flight: verify existence + size before any clone (DoS guard).
+        size_kb = fetch_repo_size_kb(name)
     except RepoUrlError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+
+    if size_kb > settings.max_repo_size_kb:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Repository too large ({size_kb // 1000} MB); limit is "
+            f"{settings.max_repo_size_kb // 1000} MB",
+        )
 
     repo = Repo(url=body.url.strip(), name=name, status="pending")
     db.add(repo)
