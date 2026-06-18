@@ -1,18 +1,26 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEV_SECRET = "dev-only-change-in-production"
 
+logger = logging.getLogger("agentrail.config")
+
 
 class Settings(BaseSettings):
+    environment: str = Field(default="development", validation_alias="ENV")
     database_url: str = "sqlite:///./agentrail.db"
     secret_key: str = _DEV_SECRET
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
+
+    # Observability + CORS
+    log_level: str = "INFO"
+    allowed_origins: str = "http://localhost:3000"  # comma-separated
 
     # Repo scanning
     repo_workspace_dir: str = "./data/repos"
@@ -24,18 +32,13 @@ class Settings(BaseSettings):
     scan_rate_limit: str = "10/hour"  # per-IP limit on imports
     github_api_timeout_seconds: int = 10
 
-    @field_validator("secret_key")
-    @classmethod
-    def _require_strong_key(cls, v: str) -> str:
-        if v == _DEV_SECRET:
-            import logging
-            import os
-            if os.getenv("ENV", "development") == "production":
-                raise ValueError("SECRET_KEY must be changed from its default in production")
-            logging.warning("SECRET_KEY is using the insecure default. Set SECRET_KEY env var before deploying.")
-        if len(v) < 16:
-            raise ValueError("SECRET_KEY must be at least 16 characters")
-        return v
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() == "production"
+
+    @property
+    def origins_list(self) -> list[str]:
+        return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
 
     @field_validator("algorithm")
     @classmethod
@@ -44,10 +47,27 @@ class Settings(BaseSettings):
             raise ValueError("algorithm must be HS256, HS384, or HS512")
         return v
 
+    @model_validator(mode="after")
+    def _enforce_secret_key(self) -> "Settings":
+        if len(self.secret_key) < 16:
+            raise ValueError("SECRET_KEY must be at least 16 characters")
+        if self.secret_key == _DEV_SECRET:
+            if self.is_production:
+                raise ValueError(
+                    "SECRET_KEY must be changed from its default in production "
+                    "(ENV=production). Generate one: "
+                    'python -c "import secrets; print(secrets.token_hex(32))"'
+                )
+            logger.warning(
+                "SECRET_KEY is using the insecure default. Set SECRET_KEY before deploying."
+            )
+        return self
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
 

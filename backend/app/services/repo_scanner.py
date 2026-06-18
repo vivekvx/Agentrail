@@ -68,9 +68,7 @@ _IGNORE_DIRS = {
     ".vscode",
 }
 
-_GITHUB_RE = re.compile(
-    r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$"
-)
+_GITHUB_RE = re.compile(r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 
 
 class RepoUrlError(ValueError):
@@ -99,9 +97,7 @@ def fetch_repo_size_kb(name: str) -> int:
         headers={"Accept": "application/vnd.github+json", "User-Agent": "agentrail"},
     )
     try:
-        with urllib.request.urlopen(
-            req, timeout=settings.github_api_timeout_seconds
-        ) as resp:
+        with urllib.request.urlopen(req, timeout=settings.github_api_timeout_seconds) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         if exc.code == 404:
@@ -208,9 +204,7 @@ def scan_repo(repo_id: int) -> None:
 
         repo.default_branch = default_branch
         repo.file_count = file_count
-        repo.languages_json = json.dumps(
-            [{"name": n, "count": c} for n, c in langs.most_common()]
-        )
+        repo.languages_json = json.dumps([{"name": n, "count": c} for n, c in langs.most_common()])
         repo.tree_json = json.dumps(tree)
         repo.status = "ready"
         repo.error_message = None

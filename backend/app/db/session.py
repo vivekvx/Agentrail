@@ -15,7 +15,9 @@ class Base(DeclarativeBase):
 def _engine_kwargs(database_url: str) -> dict[str, object]:
     if database_url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}}
-    return {}
+    # Postgres (or other server DBs): validate connections before use so a
+    # dropped/stale connection from the pool doesn't surface as a 500.
+    return {"pool_pre_ping": True, "pool_recycle": 1800}
 
 
 def _enable_sqlite_concurrency(dbapi_connection, _record) -> None:

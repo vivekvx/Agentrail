@@ -3,7 +3,9 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 
-def _register(client: TestClient, email: str = "user@example.com", password: str = "pass123") -> str:
+def _register(
+    client: TestClient, email: str = "user@example.com", password: str = "pass123"
+) -> str:
     res = client.post("/api/auth/register", json={"email": email, "password": password})
     assert res.status_code == 201, res.text
     return res.json()["access_token"]
@@ -42,5 +44,3 @@ def test_login_wrong_password_401(client: TestClient) -> None:
 def test_login_unknown_email_401(client: TestClient) -> None:
     res = client.post("/api/auth/login", json={"email": "nobody@x.com", "password": "pw"})
     assert res.status_code == 401
-
-

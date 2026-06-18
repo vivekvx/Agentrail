@@ -1,1 +1,2 @@
+release: uv run --active alembic upgrade head
 web: uv run --active uvicorn app.main:app --host 0.0.0.0 --port $PORT
