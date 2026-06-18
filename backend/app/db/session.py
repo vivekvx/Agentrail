@@ -32,10 +32,21 @@ def _enable_sqlite_concurrency(dbapi_connection, _record) -> None:
         cursor.close()
 
 
-settings = get_settings()
-engine = create_engine(settings.database_url, **_engine_kwargs(settings.database_url))
+def normalize_db_url(url: str) -> str:
+    # Managed hosts (Render/Heroku) hand out "postgres://"; SQLAlchemy needs
+    # an explicit driver. Point it at psycopg3.
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://") :]
+    if url.startswith("postgresql://"):
+        return "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url
 
-if settings.database_url.startswith("sqlite"):
+
+settings = get_settings()
+_db_url = normalize_db_url(settings.database_url)
+engine = create_engine(_db_url, **_engine_kwargs(_db_url))
+
+if _db_url.startswith("sqlite"):
     event.listen(engine, "connect", _enable_sqlite_concurrency)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.core.config import get_settings
-from app.db.session import Base
+from app.db.session import Base, normalize_db_url
 from app.db import models  # noqa: F401 - register tables on Base.metadata
 
 # this is the Alembic Config object, which provides
@@ -14,7 +14,7 @@ from app.db import models  # noqa: F401 - register tables on Base.metadata
 config = context.config
 
 # Use the application's configured database URL (env/.env), not a hardcoded one.
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+config.set_main_option("sqlalchemy.url", normalize_db_url(get_settings().database_url))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
