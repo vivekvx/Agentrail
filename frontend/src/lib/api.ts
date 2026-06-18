@@ -53,6 +53,23 @@ export function getRepo(id: number | string) {
   return request<RepoDetail>(`/repos/${id}`);
 }
 
+export type MapNode = {
+  id: string;
+  label: string;
+  files: number;
+  lang: string | null;
+  depth: number;
+};
+
+export type RepoMap = {
+  nodes: MapNode[];
+  edges: { source: string; target: string }[];
+};
+
+export function getRepoMap(id: number | string) {
+  return request<RepoMap>(`/repos/${id}/map`);
+}
+
 export function listRepos(limit = 20) {
   return request<RepoSummary[]>(`/repos?limit=${limit}`);
 }

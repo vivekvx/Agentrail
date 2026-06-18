@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.core.limiter import limiter
 from app.db.models import Repo
 from app.db.session import get_db
+from app.services.repo_map import build_module_graph
 from app.services.repo_scanner import (
     RepoUrlError,
     fetch_repo_size_kb,
@@ -106,3 +107,12 @@ def get_repo(repo_id: int, db: Session = Depends(get_db)) -> RepoDetail:
     if repo is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repo not found")
     return _detail(repo)
+
+
+@router.get("/{repo_id}/map")
+def get_repo_map(repo_id: int, db: Session = Depends(get_db)) -> dict:
+    repo = db.get(Repo, repo_id)
+    if repo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repo not found")
+    tree = json.loads(repo.tree_json) if repo.tree_json else None
+    return build_module_graph(tree)

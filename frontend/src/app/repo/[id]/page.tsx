@@ -11,6 +11,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { SiteChrome } from "@/components/site-chrome";
+import { CodebaseMap } from "@/components/codebase-map";
 import { getRepo, type RepoDetail, type TreeNode } from "@/lib/api";
 
 const POLL_MS = 1500;
@@ -63,6 +64,7 @@ export default function RepoPage({
   const { id } = use(params);
   const [repo, setRepo] = useState<RepoDetail | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
+  const [view, setView] = useState<"map" | "tree">("map");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -175,14 +177,37 @@ export default function RepoPage({
                   </div>
                 )}
 
-                {/* Tree */}
+                {/* Map / Tree */}
                 {repo.tree && (
                   <div className="mt-10">
-                    <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
-                      File tree
-                    </h2>
-                    <div className="mt-4 max-h-[520px] overflow-auto rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] p-4 scrollbar-thin">
-                      <TreeView node={repo.tree} />
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                        Codebase
+                      </h2>
+                      <div className="flex gap-1 rounded-lg border border-[var(--hairline)] bg-[var(--surface-card)] p-1">
+                        {(["map", "tree"] as const).map((v) => (
+                          <button
+                            key={v}
+                            onClick={() => setView(v)}
+                            className={`rounded-md px-3 py-1 font-mono text-[11px] uppercase tracking-[0.12em] transition ${
+                              view === v
+                                ? "bg-[var(--canvas)] text-[var(--ink)]"
+                                : "text-[var(--muted)] hover:text-[var(--ink)]"
+                            }`}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      {view === "map" ? (
+                        <CodebaseMap repoId={id} />
+                      ) : (
+                        <div className="max-h-[520px] overflow-auto rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] p-4 scrollbar-thin">
+                          <TreeView node={repo.tree} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
