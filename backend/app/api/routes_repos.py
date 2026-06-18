@@ -18,6 +18,7 @@ from app.services.repo_scanner import (
     parse_github_url,
     scan_repo,
 )
+from app.services.tour import TourError, generate_tour
 
 router = APIRouter(prefix="/api/repos", tags=["repos"])
 
@@ -116,3 +117,26 @@ def get_repo_map(repo_id: int, db: Session = Depends(get_db)) -> dict:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repo not found")
     tree = json.loads(repo.tree_json) if repo.tree_json else None
     return build_module_graph(tree)
+
+
+@router.get("/{repo_id}/tour")
+def get_repo_tour(repo_id: int, refresh: bool = False, db: Session = Depends(get_db)) -> dict:
+    repo = db.get(Repo, repo_id)
+    if repo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repo not found")
+    if repo.status != "ready":
+        raise HTTPException(status_code=409, detail="Repo is not scanned yet")
+
+    if repo.tour_json and not refresh:
+        return {"steps": json.loads(repo.tour_json)}
+
+    tree = json.loads(repo.tree_json) if repo.tree_json else None
+    languages = json.loads(repo.languages_json) if repo.languages_json else []
+    try:
+        steps = generate_tour(repo.name, languages, tree)
+    except TourError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    repo.tour_json = json.dumps(steps)
+    db.commit()
+    return {"steps": steps}

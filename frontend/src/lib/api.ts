@@ -70,6 +70,12 @@ export function getRepoMap(id: number | string) {
   return request<RepoMap>(`/repos/${id}/map`);
 }
 
+export type TourStep = { title: string; path: string; explanation: string };
+
+export function getRepoTour(id: number | string, refresh = false) {
+  return request<{ steps: TourStep[] }>(`/repos/${id}/tour?refresh=${refresh}`);
+}
+
 export function listRepos(limit = 20) {
   return request<RepoSummary[]>(`/repos?limit=${limit}`);
 }

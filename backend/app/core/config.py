@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     allowed_origins: str = "http://localhost:3000"  # comma-separated
 
+    # Tour generation (Ollama, OpenAI-compatible local LLM)
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2"
+    ollama_timeout_seconds: int = 120
+
     # Repo scanning
     repo_workspace_dir: str = "./data/repos"
     git_clone_timeout_seconds: int = 60
