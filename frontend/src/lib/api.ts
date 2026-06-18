@@ -76,6 +76,15 @@ export function getRepoTour(id: number | string, refresh = false) {
   return request<{ steps: TourStep[] }>(`/repos/${id}/tour?refresh=${refresh}`);
 }
 
+export type ChatAnswer = { answer: string; sources: string[] };
+
+export function askRepo(id: number | string, question: string) {
+  return request<ChatAnswer>(`/repos/${id}/chat`, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
 export function listRepos(limit = 20) {
   return request<RepoSummary[]>(`/repos?limit=${limit}`);
 }

@@ -206,6 +206,16 @@ def scan_repo(repo_id: int) -> None:
         repo.file_count = file_count
         repo.languages_json = json.dumps([{"name": n, "count": c} for n, c in langs.most_common()])
         repo.tree_json = json.dumps(tree)
+
+        # Best-effort: build the chat index while the clone is still on disk.
+        # If Ollama is down the repo is still usable for map/tree/tour.
+        try:
+            from app.services import rag
+
+            repo.chunks_json = json.dumps(rag.build_index(workspace))
+        except Exception as exc:  # noqa: BLE001 - chat is optional
+            logger.warning("chat index skipped for repo %s: %s", repo_id, exc)
+
         repo.status = "ready"
         repo.error_message = None
         db.commit()

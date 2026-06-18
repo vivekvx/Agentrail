@@ -13,6 +13,7 @@ import {
 import { SiteChrome } from "@/components/site-chrome";
 import { CodebaseMap } from "@/components/codebase-map";
 import { CodebaseTour } from "@/components/codebase-tour";
+import { CodebaseChat } from "@/components/codebase-chat";
 import { getRepo, type RepoDetail, type TreeNode } from "@/lib/api";
 
 const POLL_MS = 1500;
@@ -65,7 +66,7 @@ export default function RepoPage({
   const { id } = use(params);
   const [repo, setRepo] = useState<RepoDetail | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
-  const [view, setView] = useState<"map" | "tour" | "tree">("map");
+  const [view, setView] = useState<"map" | "tour" | "chat" | "tree">("map");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -186,7 +187,7 @@ export default function RepoPage({
                         Codebase
                       </h2>
                       <div className="flex gap-1 rounded-lg border border-[var(--hairline)] bg-[var(--surface-card)] p-1">
-                        {(["map", "tour", "tree"] as const).map((v) => (
+                        {(["map", "tour", "chat", "tree"] as const).map((v) => (
                           <button
                             key={v}
                             onClick={() => setView(v)}
@@ -204,6 +205,7 @@ export default function RepoPage({
                     <div className="mt-4">
                       {view === "map" && <CodebaseMap repoId={id} />}
                       {view === "tour" && <CodebaseTour repoId={id} />}
+                      {view === "chat" && <CodebaseChat repoId={id} />}
                       {view === "tree" && (
                         <div className="max-h-[520px] overflow-auto rounded-xl border border-[var(--hairline)] bg-[var(--surface-card)] p-4 scrollbar-thin">
                           <TreeView node={repo.tree} />

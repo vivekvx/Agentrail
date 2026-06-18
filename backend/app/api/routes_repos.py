@@ -18,6 +18,7 @@ from app.services.repo_scanner import (
     parse_github_url,
     scan_repo,
 )
+from app.services.rag import RagError, answer
 from app.services.tour import TourError, generate_tour
 
 router = APIRouter(prefix="/api/repos", tags=["repos"])
@@ -140,3 +141,26 @@ def get_repo_tour(repo_id: int, refresh: bool = False, db: Session = Depends(get
     repo.tour_json = json.dumps(steps)
     db.commit()
     return {"steps": steps}
+
+
+class ChatRequest(BaseModel):
+    question: str
+
+
+@router.post("/{repo_id}/chat")
+def chat(repo_id: int, body: ChatRequest, db: Session = Depends(get_db)) -> dict:
+    repo = db.get(Repo, repo_id)
+    if repo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repo not found")
+    question = body.question.strip()
+    if not question:
+        raise HTTPException(status_code=422, detail="Question is required")
+    if not repo.chunks_json:
+        raise HTTPException(
+            status_code=409,
+            detail="This repo has no chat index. Re-import it with Ollama running.",
+        )
+    try:
+        return answer(question, json.loads(repo.chunks_json))
+    except RagError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))

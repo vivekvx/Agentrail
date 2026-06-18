@@ -22,10 +22,17 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     allowed_origins: str = "http://localhost:3000"  # comma-separated
 
-    # Tour generation (Ollama, OpenAI-compatible local LLM)
+    # Tour + chat generation (Ollama, local LLM)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"
+    ollama_embed_model: str = "nomic-embed-text"
     ollama_timeout_seconds: int = 120
+    # RAG chat
+    rag_max_chunks: int = (
+        400  # ponytail: cap per repo; pgvector if repos outgrow brute-force cosine
+    )
+    rag_chunk_chars: int = 1200
+    rag_top_k: int = 6
 
     # Repo scanning
     repo_workspace_dir: str = "./data/repos"

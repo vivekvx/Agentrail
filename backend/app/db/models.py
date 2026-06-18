@@ -37,6 +37,7 @@ class Repo(Base):
     languages_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     tree_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     tour_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    chunks_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
