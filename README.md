@@ -1,59 +1,72 @@
 # Agentrail
 
-**Verification-first AI agent for evidence-backed bug fixes.**
+**Onboard to any codebase in minutes, not weeks.**
 
 ![Python](https://img.shields.io/badge/Python-3.11+-111111?style=flat&labelColor=0A0A0A)
 ![FastAPI](https://img.shields.io/badge/FastAPI-backend-111111?style=flat&labelColor=0A0A0A)
 ![Next.js](https://img.shields.io/badge/Next.js-frontend-111111?style=flat&labelColor=0A0A0A)
-![LangGraph](https://img.shields.io/badge/LangGraph-agent_workflow-111111?style=flat&labelColor=0A0A0A)
+![Ollama](https://img.shields.io/badge/Ollama-local_LLM-111111?style=flat&labelColor=0A0A0A)
 ![CI](https://github.com/vivekvx/Agentrail/actions/workflows/ci.yml/badge.svg)
 
-Debugging a repository is slow: reproduce the bug, trace evidence through files, propose a fix, run tests, assess risk, write the PR description. Agentrail automates every step — scanning code, collecting evidence, explaining root cause, generating a patch diff, running tests, and scoring residual risk — then pauses for your explicit approval before anything touches your repository.
+Agentrail is a codebase onboarding agent. Point it at a public GitHub repository and it clones the code, maps the architecture, generates a guided tour, and answers questions — all grounded in the actual source. The AI runs locally on [Ollama](https://ollama.com), so there is no API cost and no vector database to operate.
 
-> Production-minded safety design with human-in-the-loop approval gate. Your repository is never modified without your explicit action.
-
-<p align="center">
-  <img src="docs/screenshots/hero-dashboard.png" width="32%" alt="Agentrail command center" />
-  <img src="docs/screenshots/agent-graph.png" width="32%" alt="Agent workflow pipeline" />
-  <img src="docs/screenshots/verification-risk.png" width="32%" alt="Safety model boundaries" />
-</p>
+> The walkthrough a senior engineer would give a new hire — generated automatically, per repository.
 
 ---
 
-## Pipeline
+## What it does
 
-| Stage | Output |
+Paste a GitHub URL → Agentrail scans the repo, then gives you five ways to explore it:
+
+| View | What it shows |
 |---|---|
-| Scan | Detected stack, key files, test commands |
-| Search | Relevant files with line-numbered matches |
-| Evidence | Code snippets grounded in source |
-| Root cause | Structured explanation backed by evidence |
-| Fix strategy | High-level change plan constrained to evidence |
-| Patch preview | Unified diff — no automatic file writes |
-| **Approval gate** | **LangGraph interrupt — you decide** |
-| Test runner | Allowlisted local runner or optional E2B sandbox |
-| Verification | Verified / not verified / needs manual review |
-| Risk scoring | Residual risk with concrete factors |
-| PR draft | Copy-ready title and Markdown body |
+| **Map** | Interactive module graph (React Flow) derived from the file tree — nodes sized by file count, colored by dominant language |
+| **Tour** | An ordered, LLM-generated walkthrough: where to start and why, with file references |
+| **Chat** | Code Q&A over the repo (local RAG) — every answer cites the source files it used |
+| **Docs** | Living documentation composed from the map + tour, downloadable as Markdown |
+| **Tree** | Collapsible file tree with per-file language detection |
+
+---
+
+## How it works
+
+```
+GitHub URL ──▶ shallow clone ──▶ walk tree + detect stack ──▶ embed files (Ollama)
+                                          │
+        ┌─────────────────┬──────────────┼──────────────┬─────────────────┐
+       Map              Tour            Chat            Docs              Tree
+   module graph     LLM walkthrough   RAG Q&A       Markdown export    file tree
+```
+
+- **Scan** is a depth-1 git clone; the working copy is deleted after indexing.
+- **RAG** chunks text files, embeds them with `nomic-embed-text`, and retrieves the top matches by cosine similarity in-process — brute force is plenty at single-repo scale, so there is no external vector store.
+- **Map / Tree / Docs** work without an LLM; **Tour** and **Chat** need Ollama running.
 
 ---
 
 ## Quickstart
 
-**Requirements:** Python 3.11+, Node.js 18+, [uv](https://github.com/astral-sh/uv)
+**Requirements:** Python 3.11+, Node.js 18+, [uv](https://github.com/astral-sh/uv), and [Ollama](https://ollama.com) (optional — only for Tour and Chat).
 
-### 1. Backend
+### 1. Ollama (optional, for AI features)
+
+```bash
+ollama pull llama3.2          # tour + chat generation
+ollama pull nomic-embed-text  # embeddings for chat
+```
+
+### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env   # add your API key (see Configuration)
+cp .env.example .env
 uv sync --extra dev
 uv run uvicorn app.main:app --port 8000 --reload
 ```
 
-> **Database:** The default `DATABASE_URL` points to Postgres. For local dev without Postgres, set `DATABASE_URL=sqlite:///./agentrail.db` in `backend/.env`.
+Defaults to SQLite — no database to install.
 
-### 2. Frontend
+### 3. Frontend
 
 ```bash
 cd frontend
@@ -61,102 +74,61 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-### 3. Create a run
-
-1. Enter a local **Repo Path** (e.g. `/path/to/your-project`)
-2. Describe the bug in **User Task**
-3. Set a **Test Command** (e.g. `python -m pytest`)
-4. Click **Create Run** → **Start Run**
-5. Review the patch diff → **Approve** or **Reject**
+Open [http://localhost:3000](http://localhost:3000), paste a public GitHub URL, and explore.
 
 ---
 
 ## Configuration
 
-Copy `backend/.env.example` to `backend/.env`. All external integrations are optional — the deterministic workflow runs without any API keys.
+Copy `backend/.env.example` to `backend/.env`. Everything has a working default.
 
-| Variable | Purpose |
-|---|---|
-| `OPENAI_API_KEY` | LLM provider key (OpenAI or any OpenAI-compatible endpoint) |
-| `OPENAI_BASE_URL` | Override endpoint — use `https://api.groq.com/openai/v1` for Groq |
-| `OPENAI_MODEL` | Model name, e.g. `llama-3.3-70b-versatile` |
-| `LLM_ROOT_CAUSE_ENABLED` | LLM root-cause analysis — auto-enabled when an API key is set |
-| `LLM_FIX_STRATEGY_ENABLED` | LLM fix-strategy generation — auto-enabled when an API key is set |
-| `LLM_PATCH_ENABLED` | LLM-written patch code — auto-enabled when an API key is set |
-| `GITHUB_TOKEN` | GitHub PAT for private repo access (optional) |
-| `GITHUB_IMPORT_ENABLED` | Allow public repo cloning (`true`/`false`) |
-| `E2B_ENABLED` | Use E2B cloud sandbox for test execution (`true`/`false`) |
-| `E2B_API_KEY` | E2B API key |
-| `AGENTRAIL_ALLOWED_REPO_ROOTS` | Comma-separated local paths the agent may access |
+| Variable | Purpose | Default |
+|---|---|---|
+| `ENV` | `production` enforces a real `SECRET_KEY` | `development` |
+| `DATABASE_URL` | SQLite for dev, Postgres for production | `sqlite:///./agentrail.db` |
+| `SECRET_KEY` | Auth signing key — **required in production** | dev placeholder |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins | `http://localhost:3000` |
+| `OLLAMA_BASE_URL` | Ollama endpoint for tour + chat | `http://localhost:11434` |
+| `OLLAMA_MODEL` | Generation model | `llama3.2` |
+| `OLLAMA_EMBED_MODEL` | Embedding model | `nomic-embed-text` |
 
-**Free LLM option:** sign up at [console.groq.com](https://console.groq.com) (no credit card required), then set:
-
-```env
-OPENAI_BASE_URL=https://api.groq.com/openai/v1
-OPENAI_API_KEY=gsk_...
-OPENAI_MODEL=llama-3.3-70b-versatile
-```
-
-Setting an API key auto-enables all three LLM stages — no flags needed. Set any
-`LLM_*_ENABLED=false` to opt out individually.
-
-**Two analysis modes** (reported per run as `analysis_mode` / `patch_mode`):
-
-- **LLM mode** (API key set) — root cause, fix strategy, and patch code are written
-  by the model, grounded in collected evidence. Patches are syntax-validated
-  (`ast.parse` for Python, brace balancing for TS/JS) before being shown; invalid
-  output falls back to the deterministic path.
-- **Heuristic mode** (no key) — deterministic evidence scoring and annotated diffs.
-  Exists so the demo runs fully offline; it does not write fix code.
+Repo-scan and RAG limits (`MAX_REPO_SIZE_KB`, `MAX_CONCURRENT_SCANS`, `RAG_MAX_CHUNKS`, …) are also configurable — see `app/core/config.py`.
 
 ---
 
-## Safety
+## Tech stack
 
-Nothing happens to your repository without your explicit action.
-
-- **Patch-preview only** — diffs are displayed, never applied automatically
-- **Human approval gate** — LangGraph interrupts the pipeline; you approve or reject
-- **Command allowlist** — test runner uses `shell=False` and an explicit allowlist
-- **Secret-file filtering** — `.env`, key files, and credential patterns are excluded
-- **Read-only GitHub import** — no write tokens used during repo or issue import
-- **Sanitized errors** — raw tracebacks and tokens are scrubbed before display
-
-See [docs/SAFETY_MODEL.md](docs/SAFETY_MODEL.md) for full details.
+- **Backend** — Python, FastAPI, SQLAlchemy, Alembic migrations, SQLite → Postgres.
+- **Frontend** — Next.js (App Router), React 19, TypeScript, Tailwind v4, React Flow, GSAP. Dual dark/light theme.
+- **AI** — local-first via Ollama; in-process cosine RAG (no paid API, no vector DB).
+- **Infra** — Dockerized backend, GitHub Actions CI (lint, type-check, tests, dependency audit), Vercel + Render/Neon deployment.
 
 ---
 
-## Docker (one-command start)
+## Security & hardening
 
-Requires [Docker](https://docker.com) and [Docker Compose](https://docs.docker.com/compose/).
+The repo-import endpoint is public, so it is hardened against abuse:
 
-```bash
-cp backend/.env.example backend/.env  # add API keys
-docker compose up --build
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-The stack starts Postgres, runs Alembic migrations, and serves the backend on port 8000 and frontend on port 3000.
+- **Rate limiting** — per-IP cap on imports (slowapi).
+- **Size pre-flight** — repo size checked via the GitHub API before any clone; oversized or missing repos are rejected.
+- **Bounded concurrency** — a semaphore caps simultaneous clones.
+- **Hardened proxy** — the frontend API proxy only forwards to allowlisted backend paths.
+- **Security headers** — CSP, HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`.
+- **Secret enforcement** — startup fails in production if `SECRET_KEY` is the default.
+- **Error sanitization** — raw git/internal errors are logged server-side, never returned to clients.
 
 ---
 
-## One-Command Dev
+## Tests & CI
 
 ```bash
-make install   # install all deps (first time only)
-make dev       # start backend (8000) + frontend (3000) together
+cd backend && uv run pytest        # 47 tests
+cd backend && uv run ruff check .  # lint
+cd frontend && npm run build       # type-check + build
+cd frontend && npx eslint .        # lint
 ```
 
-Other targets:
-
-```bash
-make backend   # backend only
-make frontend  # frontend only
-make test      # run all tests + frontend build check
-```
+CI runs all of the above plus formatting and dependency audits on every push.
 
 ---
 
@@ -169,65 +141,41 @@ cd frontend
 npx vercel --prod
 ```
 
-Set environment variable in Vercel dashboard:
+Set `AGENTRAIL_API_BASE_URL = https://your-backend.onrender.com/api` in the Vercel dashboard.
 
-```
-AGENTRAIL_API_BASE_URL = https://your-backend.railway.app/api
-```
+### Backend → Render + Neon (free tiers)
 
-### Backend → Railway (free tier)
+1. Create a Postgres database on [Neon](https://neon.tech) and copy the connection string.
+2. On [Render](https://render.com): New → Web Service → connect this repo, root `backend`, runtime Docker.
+3. Set env vars: `ENV=production`, `SECRET_KEY` (`python -c "import secrets; print(secrets.token_hex(32))"`), `DATABASE_URL` (Neon), `ALLOWED_ORIGINS` (your Vercel URL).
 
-1. Install Railway CLI: `npm install -g @railway/cli`
-2. `railway login`
-3. `cd backend && railway up`
-4. Set env vars in Railway dashboard (same as `backend/.env`)
+The Docker image installs `git`, runs Alembic migrations on boot, and binds to the host `$PORT`. See [backend/DEPLOY.md](backend/DEPLOY.md) for details and the known single-instance scan constraint.
 
-> **Note:** The backend requires persistent storage and long-running processes — it cannot run on Vercel. Use Railway, Render, or Fly.io instead.
+> **Note on AI features when hosted:** Tour and Chat need an LLM the *server* can reach. A typical free host can't run Ollama, so point `OLLAMA_BASE_URL` at a hosted OpenAI-compatible endpoint — or run the backend locally for the full experience. Map, Tree, and Docs work everywhere.
 
 ---
 
-## Tests
+## Project layout
 
-```bash
-# Backend
-cd backend
-uv run pytest
-
-# Frontend
-cd frontend
-npm run build
-npm run lint
 ```
-
-## Evaluation
-
-Agentrail ships a deterministic regression suite — project-specific fixtures that validate workflow behavior end-to-end.
-
-```bash
-cd backend
-uv run python -m app.evals.runner
+backend/
+  app/
+    api/        FastAPI routes (auth, repos, map, tour, chat)
+    core/       config, security, rate limiting, observability
+    db/         models, session
+    services/   repo_scanner, repo_map, tour, rag
+  alembic/      migrations
+  tests/        pytest suite
+frontend/
+  src/app/        routes (home, explore, repo/[id])
+  src/components/ map, tour, chat, docs, site chrome, theme toggle
+  src/lib/        api client, motion helpers
 ```
-
-All five scenarios currently pass at `100/100`. See [docs/EVAL_REPORT.md](docs/EVAL_REPORT.md).
 
 ---
 
-## Roadmap
+## Status
 
-**Shipped:** LangGraph workflow, local and GitHub repo input, GitHub issue import, patch previews, approval gate, safe test runner, risk scoring, PR draft export, run history, diff highlighting, deterministic evals.
+Working: import · scan · map · tour · chat · docs · tree, with migrations, CI, and 47 tests.
 
-**Planned:** real GitHub PR creation, CI integration, durable checkpointing, benchmark dashboard, broader framework coverage, production auth.
-
-See [docs/ROADMAP.md](docs/ROADMAP.md).
-
----
-
-## Documentation
-
-| Document | Purpose |
-|---|---|
-| [Architecture](docs/ARCHITECTURE.md) | System design and LangGraph workflow |
-| [Safety Model](docs/SAFETY_MODEL.md) | Approval, sandbox, and command safety |
-| [Demo Script](docs/DEMO_SCRIPT.md) | 2-minute and 5-minute demo walkthrough |
-| [Evaluation Report](docs/EVAL_REPORT.md) | Evaluation scenarios and results |
-| [Roadmap](docs/ROADMAP.md) | Completed and planned work |
+Roadmap: hosted backend + cloud LLM fallback so AI features work for every visitor; per-user progress tracking; multi-repo workspaces.
