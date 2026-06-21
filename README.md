@@ -8,6 +8,10 @@
 ![Ollama](https://img.shields.io/badge/Ollama-local_LLM-111111?style=flat&labelColor=0A0A0A)
 ![CI](https://github.com/vivekvx/Agentrail/actions/workflows/ci.yml/badge.svg)
 
+**[Live demo →](https://agentrail-three.vercel.app)** · **[API →](https://agentrail-api.vercel.app/health)**
+
+> **Demo note:** The hosted UI, auth, and API are fully live. Repo scanning (clone + AI tour/chat) requires `git` on the server — run locally for the full experience (see [Quickstart](#quickstart)).
+
 Agentrail is a codebase onboarding agent. Point it at a public GitHub repository and it clones the code, maps the architecture, generates a guided tour, and answers questions — all grounded in the actual source. The AI runs locally on [Ollama](https://ollama.com), so there is no API cost and no vector database to operate.
 
 > The walkthrough a senior engineer would give a new hire — generated automatically, per repository.
@@ -134,24 +138,31 @@ CI runs all of the above plus formatting and dependency audits on every push.
 
 ## Deployment
 
-### Frontend → Vercel
+### Frontend → Vercel (live at [agentrail-three.vercel.app](https://agentrail-three.vercel.app))
 
 ```bash
 cd frontend
 npx vercel --prod
 ```
 
-Set `AGENTRAIL_API_BASE_URL = https://your-backend.onrender.com/api` in the Vercel dashboard.
+Set env var in Vercel dashboard: `AGENTRAIL_API_BASE_URL = https://agentrail-api.vercel.app/api`
 
-### Backend → Render + Neon (free tiers)
+### Backend → Vercel + Neon (live at [agentrail-api.vercel.app](https://agentrail-api.vercel.app))
 
-1. Create a Postgres database on [Neon](https://neon.tech) and copy the connection string.
-2. On [Render](https://render.com): New → Web Service → connect this repo, root `backend`, runtime Docker.
-3. Set env vars: `ENV=production`, `SECRET_KEY` (`python -c "import secrets; print(secrets.token_hex(32))"`), `DATABASE_URL` (Neon), `ALLOWED_ORIGINS` (your Vercel URL).
+```bash
+cd backend
+npx vercel --prod
+```
 
-The Docker image installs `git`, runs Alembic migrations on boot, and binds to the host `$PORT`. See [backend/DEPLOY.md](backend/DEPLOY.md) for details and the known single-instance scan constraint.
+Set env vars in Vercel dashboard:
 
-> **Note on AI features when hosted:** Tour and Chat need an LLM the *server* can reach. A typical free host can't run Ollama, so point `OLLAMA_BASE_URL` at a hosted OpenAI-compatible endpoint — or run the backend locally for the full experience. Map, Tree, and Docs work everywhere.
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Neon Postgres connection string |
+| `SECRET_KEY` | `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `ALLOWED_ORIGINS` | Your Vercel frontend URL |
+
+> **Limitation:** Vercel serverless has no `git` binary, so repo scanning won't work on this deployment. For full AI features (tour, chat, scan), deploy the backend to [Render](https://render.com) using the Docker image — it includes `git` and runs Ollama-compatible endpoints.
 
 ---
 

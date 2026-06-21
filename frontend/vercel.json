@@ -4,6 +4,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "env": {
-    "AGENTRAIL_API_BASE_URL": "https://your-backend-url.railway.app/api"
+    "AGENTRAIL_API_BASE_URL": "https://backend-64bbxx57e-iamviveksahu25-5202s-projects.vercel.app/api"
   }
 }

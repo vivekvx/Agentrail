@@ -42,24 +42,46 @@ def normalize_db_url(url: str) -> str:
     return url
 
 
-settings = get_settings()
-_db_url = normalize_db_url(settings.database_url)
-engine = create_engine(_db_url, **_engine_kwargs(_db_url))
+_engine = None
+_SessionLocal = None
 
-if _db_url.startswith("sqlite"):
-    event.listen(engine, "connect", _enable_sqlite_concurrency)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def _get_engine():
+    global _engine
+    if _engine is None:
+        settings = get_settings()
+        url = normalize_db_url(settings.database_url)
+        _engine = create_engine(url, **_engine_kwargs(url))
+        if url.startswith("sqlite"):
+            event.listen(_engine, "connect", _enable_sqlite_concurrency)
+    return _engine
+
+
+def _get_session_factory():
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_get_engine())
+    return _SessionLocal
 
 
 def init_db() -> None:
     from app.db import models  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=_get_engine())
 
 
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+    db = _get_session_factory()()
     try:
         yield db
     finally:
         db.close()
+
+
+# Backwards-compat accessors for modules that import `engine` / `SessionLocal` directly.
+def __getattr__(name: str):
+    if name == "engine":
+        return _get_engine()
+    if name == "SessionLocal":
+        return _get_session_factory()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

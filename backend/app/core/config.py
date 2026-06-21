@@ -13,14 +13,14 @@ logger = logging.getLogger("agentrail.config")
 
 class Settings(BaseSettings):
     environment: str = Field(default="development", validation_alias="ENV")
-    database_url: str = "sqlite:///./agentrail.db"
+    database_url: str = "sqlite:////tmp/agentrail.db"
     secret_key: str = _DEV_SECRET
     access_token_expire_minutes: int = 60 * 24 * 7  # 7 days
     algorithm: str = "HS256"
 
     # Observability + CORS
     log_level: str = "INFO"
-    allowed_origins: str = "http://localhost:3000"  # comma-separated
+    allowed_origins: str = "http://localhost:3000,https://frontend-seven-eta-91.vercel.app"  # comma-separated
 
     # Tour + chat generation (Ollama, local LLM)
     ollama_base_url: str = "http://localhost:11434"
